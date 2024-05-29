@@ -1,0 +1,6 @@
+[submodule "ropebwt2"]
+	path = ropebwt2
+	url = https://github.com/lh3/ropebwt2/
+[submodule "gfatools"]
+	path = gfatools
+	url = https://github.com/lh3/gfatools
