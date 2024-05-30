@@ -18,10 +18,7 @@
 #include <zlib.h>
 
 #include "kseq.h"
-#include "mrope.h"
 #include "rld0.h"
-#include "rle.h"
-#include "ropebwt2/rld0.h"
 #include "utils.h"
 
 #include <cstdint>
