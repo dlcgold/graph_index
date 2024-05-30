@@ -1,0 +1,8 @@
+*~
+.vscode
+*.o
+*.graph
+*.tag
+*.ser
+gindex
+gindexquery
