@@ -24,6 +24,8 @@
 #include <cstdint>
 KSEQ_INIT(gzFile, gzread)
 
+bool verbose = true;
+
 uint8_t get_bwt_symb(const rld_t *index, unsigned int pos) {
   rldintv_t sai;
   uint8_t symb = 5;
@@ -86,9 +88,18 @@ get_adj_nodes_f(const rld_t *index, unsigned int end_node,
                 std::vector<std::vector<unsigned int>> &tags,
                 std::vector<std::vector<unsigned int>> &adj) {
   std::vector<std::pair<unsigned int, unsigned int>> nodes;
+  if (verbose) {
+    fprintf(stderr, "adding siblings of %d: ", end_node);
+  }
   for (unsigned int k = 0; k < adj[end_node].size(); k++) {
+    if (verbose) {
+      fprintf(stderr, "%d ", adj[end_node][k]);
+    }
     nodes.push_back(
         std::make_pair(tags[1][adj[end_node][k]], adj[end_node][k]));
+  }
+  if (verbose) {
+    fprintf(stderr, "\n");
   }
   return nodes;
 }
@@ -115,7 +126,7 @@ get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
 void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
          rldintv_t &sai, std::vector<std::vector<unsigned int>> &tags,
          std::vector<std::vector<unsigned int>> &adj, unsigned int curr_node) {
-  bool verbose = false;
+
   // std::vector<unsigned int> match_nodes;
   std::vector<rldintv_t> int_curr =
       get_intervals(index, sai.x[0], sai.x[2], tags, adj);
@@ -130,10 +141,15 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
   std::vector<rldintv_t> int_next;
 
   for (; i >= 0; --i) {
+    if (verbose) {
+      fprintf(stderr, "\n");
+    }
     for (auto ic : int_curr) {
       if (verbose) {
-        fprintf(stderr, "analyzing [%ld, %ld, %ld] with char %d\n", ic.x[0],
-                ic.x[1], ic.x[2], s[i]);
+        fprintf(stderr, "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
+                ic.x[0], ic.x[1], ic.x[2], s[i], i);
+        fprintf(stderr, "in %d we have %d\n", ic.x[0],
+                get_bwt_symb(index, ic.x[0]));
       }
       rldintv_t osai[6];
       rld_extend(index, &ic, osai, 1);
@@ -142,10 +158,9 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       if (verbose) {
         fprintf(stderr, "extended into [%ld, %ld, %ld]\n", sai.x[0], sai.x[1],
                 sai.x[2]);
-
-        for (auto ic : int_next) {
-          fprintf(stderr, "before next [%ld, %ld, %ld]\n", ic.x[0], ic.x[1],
-                  ic.x[2]);
+        for (int c = 0; c < 6; ++c) {
+          fprintf(stderr, "other with %d: [%ld, %ld, %ld]\n", c, osai[c].x[0],
+                  osai[c].x[1], osai[c].x[2]);
         }
       }
       if (sai.x[2] > 0) {
@@ -169,6 +184,9 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       }
     }
     int_curr = int_next;
+    if (int_curr.size() == 0) {
+      return;
+    }
     int_next.clear();
     if (verbose) {
       fprintf(stderr, "at %d for char %d finals intervals are:\n", i, s[i]);
@@ -345,14 +363,14 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   std::vector<std::vector<unsigned int>> tags = uintmat_load(t_file.c_str());
 
-  // for (auto n : tags[0]) {
-  //   std::cout << n << " ";
-  // }
-  // std::cout << "\n";
-  // for (auto n : tags[1]) {
-  //   std::cout << n << " ";
-  // }
-  // std::cout << "\n";
+  for (auto n : tags[0]) {
+    std::cerr << n << " ";
+  }
+  std::cout << "\n-----------\n";
+  for (auto n : tags[1]) {
+    std::cerr << n << " ";
+  }
+  std::cerr << "\n";
 
   std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
 
