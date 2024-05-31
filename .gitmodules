@@ -1,6 +1,7 @@
 [submodule "gfatools"]
 	path = gfatools
 	url = https://github.com/lh3/gfatools
+        ignore = dirty
 [submodule "mfmi"]
 	path = mfmi
 	url = https://github.com/ldenti/mfmi.git
