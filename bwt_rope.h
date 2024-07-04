@@ -49,7 +49,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   std::vector<std::vector<unsigned int>> adj(ingfa->n_seg);
   std::vector<unsigned int> labels_map(ingfa->n_seg);
   int insn = 0;
-  std::cout << "nodes: " << ingfa->n_seg << "\n";
+  // std::cout << "nodes: " << ingfa->n_seg << "\n";
   for (unsigned int i = 0; i < ingfa->n_seg; ++i) {
     auto l = ingfa->seg[i].len;
     std::string seq_t = ingfa->seg[i].seq;
@@ -94,9 +94,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     // buf.l = 0;
   }
   // int dol = 0;
-  //  fprintf(stderr, "stringbuffer: ");
+  //  std::fprintf(stderr, "stringbuffer: ");
   //  for (unsigned int i = 0; i < buf.l; i++) {
-  //    fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
+  //    std::fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
   //  }
   // std::cout << "nodes size buffer dol " << dol << "\n";
   uintmat_dump(adj, graph_out.c_str());
@@ -107,9 +107,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
 
   // rlc_print_bwt(rlc);
   rlc_dump(rlc, robe_out.c_str());
-  fprintf(stderr,
-          "[M::%s] dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
-          __func__, realtime() - t_start, cputime());
+  std::fprintf(stderr,
+               "[M::%s] dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
+               __func__, realtime() - t_start, cputime());
   rlc_destroy(rlc);
 
   std::stable_sort(labels.begin(), labels.end(),
@@ -123,11 +123,11 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
                        x = (x != 'N' ? x : 'Z');
                      return aa < bb;
                    });
-  int c = 0;
-  for (auto l : labels) {
-    std::cout << c << " " << l.first << " " << l.second << "\n";
-    c++;
-  }
+  // int c = 0;
+  // for (auto l : labels) {
+  //   std::cout << c << " " << l.first << " " << l.second << "\n";
+  //   c++;
+  // }
   int off = 0;
   for (auto l : labels) {
     if (l.second == 0) {
@@ -140,22 +140,22 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     off++;
   }
 
-  for (auto t : tags[0]) {
-    std::cout << t << "\n";
-  }
+  // for (auto t : tags[0]) {
+  //   std::cout << t << "\n";
+  // }
   uintmat_dump(tags, tag_out.c_str());
   gfa_destroy(ingfa);
   free(buf.s);
 
-  std::vector<std::string> st = {};
-  for (auto l : labels) {
-    st.push_back(l.first);
-  }
+  // std::vector<std::string> st = {};
+  // for (auto l : labels) {
+  //   st.push_back(l.first);
+  // }
 
-  auto d = findDuplicates(st);
-  for (auto dd : d) {
-    std::cout << dd << "\n";
-  }
+  // auto d = findDuplicates(st);
+  // for (auto dd : d) {
+  //   std::cout << dd << "\n";
+  // }
 }
 
 #endif // GRAPHINDEX_BWT_ROPE_H

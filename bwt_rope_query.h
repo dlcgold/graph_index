@@ -53,7 +53,7 @@ uint8_t get_bwt_symb(const rld_t *index, unsigned int pos) {
 }
 unsigned int findnode(const rld_t *index, unsigned int pos, unsigned end,
                       std::vector<std::vector<unsigned int>> &tags) {
-  // fprintf(stderr, "pos %d", pos);
+  // std::fprintf(stderr, "pos %d", pos);
   uint8_t symb = get_bwt_symb(index, pos);
   rldintv_t sai;
   sai.x[0] = pos;
@@ -98,17 +98,17 @@ get_adj_nodes_f(const rld_t *index, unsigned int end_node,
                 std::vector<std::vector<unsigned int>> &adj) {
   std::vector<std::pair<unsigned int, unsigned int>> nodes;
   if (verbose) {
-    fprintf(stderr, "adding siblings of %d: ", end_node);
+    std::fprintf(stderr, "adding siblings of %d: ", end_node);
   }
   for (unsigned int k = 0; k < adj[end_node].size(); k++) {
     if (verbose) {
-      fprintf(stderr, " sibling of %d: %d\n", end_node, adj[end_node][k]);
+      std::fprintf(stderr, " sibling of %d: %d\n", end_node, adj[end_node][k]);
     }
     nodes.push_back(
         std::make_pair(tags[1][adj[end_node][k]], adj[end_node][k]));
   }
   if (verbose) {
-    fprintf(stderr, "\n");
+    std::fprintf(stderr, "\n");
   }
   return nodes;
 }
@@ -133,7 +133,7 @@ get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
       std::cerr << "\n";
     }
     for (auto n : end_nodes) {
-      // fprintf(stderr, "considering node %ld\n", n);
+      // std::fprintf(stderr, "considering node %ld\n", n);
       auto adj_nodes = get_adj_nodes_f(index, n, tags, adj);
       for (auto an : adj_nodes) {
         rldintv_t sai_t;
@@ -143,7 +143,7 @@ get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
         if (get_bwt_symb(index, an.first) == symb) {
           std::vector<unsigned int> nn = {n, an.second};
           intervals.push_back({sai_t, an.second, nn});
-          // fprintf(stderr, "size %ld \n",
+          // std::fprintf(stderr, "size %ld \n",
           //         intervals[intervals.size() - 1].path[0]);
         }
       }
@@ -181,24 +181,25 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
 
   int_curr.push_back({sai, curr_node});
   if (verbose) {
-    fprintf(stderr, "at %d for char %d:\n", i, s[i]);
+    std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
     for (auto ic : int_curr) {
-      fprintf(stderr, "[%ld, %ld, %ld]\n", ic.sai.x[0], ic.sai.x[1],
-              ic.sai.x[2]);
+      std::fprintf(stderr, "[%ld, %ld, %ld]\n", ic.sai.x[0], ic.sai.x[1],
+                   ic.sai.x[2]);
     }
   }
   std::vector<node_sai> int_next;
 
   for (; i >= 0; --i) {
     if (verbose) {
-      fprintf(stderr, "\n");
+      std::fprintf(stderr, "\n");
     }
     for (auto ic : int_curr) {
       if (verbose) {
-        fprintf(stderr, "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
-                ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i);
-        fprintf(stderr, "in %ld we have %d\n", ic.sai.x[0],
-                get_bwt_symb(index, ic.sai.x[0]));
+        std::fprintf(stderr,
+                     "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
+                     ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i);
+        std::fprintf(stderr, "in %ld we have %d\n", ic.sai.x[0],
+                     get_bwt_symb(index, ic.sai.x[0]));
       }
       rldintv_t osai[6];
       rld_extend(index, &ic.sai, osai, 1);
@@ -207,11 +208,11 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       // }
       auto sai = osai[s[i]];
       if (verbose) {
-        fprintf(stderr, "extended into [%ld, %ld, %ld]\n", sai.x[0], sai.x[1],
-                sai.x[2]);
+        std::fprintf(stderr, "extended into [%ld, %ld, %ld]\n", sai.x[0],
+                     sai.x[1], sai.x[2]);
         for (int c = 0; c < 6; ++c) {
-          fprintf(stderr, "other with %d: [%ld, %ld, %ld]\n", c, osai[c].x[0],
-                  osai[c].x[1], osai[c].x[2]);
+          std::fprintf(stderr, "other with %d: [%ld, %ld, %ld]\n", c,
+                       osai[c].x[0], osai[c].x[1], osai[c].x[2]);
         }
       }
       if (sai.x[2] > 0) {
@@ -224,8 +225,8 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
             if (!tmp_int.empty()) {
               if (verbose) {
                 for (auto ic2 : tmp_int) {
-                  fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
-                          ic2.sai.x[1], ic2.sai.x[2]);
+                  std::fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
+                               ic2.sai.x[1], ic2.sai.x[2]);
                 }
               }
               int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
@@ -235,12 +236,12 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
                 get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
             if (!tmp_int.empty()) {
               // for (auto nnn : tmp_int[0].path) {
-              //   fprintf(stderr, "path with %ld \n", nnn);
+              //   std::fprintf(stderr, "path with %ld \n", nnn);
               // }
               if (verbose) {
                 for (auto ic2 : tmp_int) {
-                  fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
-                          ic2.sai.x[1], ic2.sai.x[2]);
+                  std::fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
+                               ic2.sai.x[1], ic2.sai.x[2]);
                 }
               }
               int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
@@ -250,13 +251,13 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
         int_next.push_back({sai, ic.curr_node, ic.path});
 
         interval_size += int_next.size();
-        // fprintf(stderr, "INTERVALS: %ld %ld\n", interval_size,
+        // std::fprintf(stderr, "INTERVALS: %ld %ld\n", interval_size,
         // int_next.size());
 
         if (verbose) {
           for (auto ic : int_next) {
-            fprintf(stderr, "tmp next [%ld, %ld, %ld]\n", ic.sai.x[0],
-                    ic.sai.x[1], ic.sai.x[2]);
+            std::fprintf(stderr, "tmp next [%ld, %ld, %ld]\n", ic.sai.x[0],
+                         ic.sai.x[1], ic.sai.x[2]);
           }
         }
       }
@@ -267,25 +268,26 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
     }
     int_next.clear();
     if (verbose) {
-      fprintf(stderr, "at %d for char %d finals intervals are:\n", i, s[i]);
+      std::fprintf(stderr, "at %d for char %d finals intervals are:\n", i,
+                   s[i]);
       for (auto ic2 : int_curr) {
-        fprintf(stderr, "[%ld, %ld, %ld]\n", ic2.sai.x[0], ic2.sai.x[1],
-                ic2.sai.x[2]);
+        std::fprintf(stderr, "[%ld, %ld, %ld]\n", ic2.sai.x[0], ic2.sai.x[1],
+                     ic2.sai.x[2]);
       }
     }
   }
   for (auto ic : int_curr) {
     if (ic.sai.x[2] >= 1) {
-      // fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
+      // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
       // ic.sai.x[1],
       //         ic.sai.x[2]);
 
       if (ic.curr_node != tags[0].size()) {
         if (ic.path.size() > 1) {
-          // fprintf(stderr, "Match at nodes: ");
+          // std::fprintf(stderr, "Match at nodes: ");
           std::string matches = "";
           for (int i = ic.path.size() - 1; i >= 0; i--) {
-            // fprintf(stderr, "%ld ", ic.path[i]);
+            // std::fprintf(stderr, "%ld ", ic.path[i]);
             if (i != 0) {
               std::ostringstream s;
               s << labels_map[ic.path[i]] << ">";
@@ -296,22 +298,23 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
               matches = matches + s.str();
             }
           }
-          std::cerr << "@" << read_name << "\t" << matches << "\n";
-          // fprintf(stderr, "%s\t%s\n", read_name, matches);
-          //  fprintf(stderr, "\n");
+          std::cout << "@" << read_name << "\t" << matches << "\n";
+          // std::fprintf(stderr, "%s\t%s\n", read_name, matches);
+          //  std::fprintf(stderr, "\n");
         } else {
-          // fprintf(stderr, "Match at node: %ld\n", ic.curr_node);
-          fprintf(stderr, "@%s\t%d\n", read_name, labels_map[ic.curr_node]);
+          // std::fprintf(stderr, "Match at node: %ld\n", ic.curr_node);
+          std::fprintf(stdout, "@%s\t%d\n", read_name,
+                       labels_map[ic.curr_node]);
         }
       } else {
         for (unsigned int k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
           auto node_f = findnode(index, k, tags[0].size(), tags);
-          // fprintf(stderr, "Match at node: %ld\n", node_f);
-          fprintf(stderr, "@%s\t%d\n", read_name, labels_map[node_f]);
+          // std::fprintf(stderr, "Match at node: %ld\n", node_f);
+          std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[node_f]);
         }
       }
     } else {
-      fprintf(stderr, "@%s\tNO MATCH\n", read_name);
+      std::fprintf(stdout, "@%s\tNO MATCH\n", read_name);
     }
   }
 }
@@ -359,7 +362,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   int l, i;
   int r_c = 0;
   while ((l = kseq_read(ks)) >= 0) {
-    // fprintf(stderr, "read %s\n", ks->name.s);
+    // std::fprintf(stderr, "read %s\n", ks->name.s);
 
     r_c++;
     s = (uint8_t *)ks->seq.s;
@@ -378,8 +381,8 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
       for (unsigned int k = sai.x[0]; k < sai.x[0] + sai.x[2]; k++) {
         auto node_f = findnode(index, k, tags[0].size(), tags);
-        // fprintf(stderr, "Match at node %d\n", node_f);
-        fprintf(stderr, "%s\t%d\n", ks->name.s, labels_map[node_f]);
+        // std::fprintf(stderr, "Match at node %d\n", node_f);
+        std::fprintf(stderr, "%s\t%d\n", ks->name.s, labels_map[node_f]);
       }
 
     } else {
@@ -389,14 +392,14 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
       // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
       ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(),
           ks->name.s);
-      // fprintf(stderr, "finished");
+      // std::fprintf(stderr, "finished");
       sai.x[1] = s_b;
     }
     r_c++;
-    // fprintf(stderr, "\n-----------------\n");
+    // std::fprintf(stderr, "\n-----------------\n");
   }
-  fprintf(stderr, "~Avg total intervals considered for %d reads: %lld\n", r_c,
-          (unsigned long long int)interval_size / r_c);
+  std::fprintf(stderr, "~Avg total intervals considered for %d reads: %lld\n",
+               r_c, (unsigned long long int)interval_size / r_c);
   kseq_destroy(ks);
   gzclose(fp);
   rld_destroy(index);
