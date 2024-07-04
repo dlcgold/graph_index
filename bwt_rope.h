@@ -7,6 +7,7 @@
 
 #include "gfa.h"
 #include "kseq.h"
+#include "mfmi/rlcsa.hpp"
 #include "rlcsa.hpp"
 
 #include <algorithm>
@@ -21,6 +22,15 @@
 
 #include <cstdint>
 
+auto findDuplicates(std::vector<std::string> &v) {
+  std::sort(v.begin(), v.end());
+  std::vector<std::string> res;
+  for (size_t i = 1; i < v.size(); ++i)
+    if (v[i] == v[i - 1] and (res.empty() or res.back() != v[i]))
+      res.push_back(v[i]);
+  return res;
+}
+
 void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   std::string robe_out = out_prefix + ".ser";
   std::string tag_out = out_prefix + ".tag";
@@ -28,7 +38,6 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   gfa_t *ingfa;
   ingfa = gfa_read(gfa_file);
   std::vector<std::pair<std::string, unsigned int>> labels;
-
 
   int64_t m = (int64_t)(.97 * 10 * 1024 * 1024 * 1024) + 1;
   double t_start = realtime();
@@ -41,6 +50,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   bool start = true;
   std::vector<std::vector<unsigned int>> adj(ingfa->n_seg);
   int insn = 0;
+  std::cout << "nodes: " << ingfa->n_seg << "\n";
   for (unsigned int i = 0; i < ingfa->n_seg; ++i) {
     auto l = ingfa->seg[i].len;
     std::string seq_t = ingfa->seg[i].seq;
@@ -55,7 +65,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
 
     kputsn((char *)s, l + 1, &buf);
     ++insn;
-    if (insn == 10) { // FIXME: hardcoded
+    if (insn == INT_MAX) { // FIXME: hardcoded
       // NOTE: insert works only if string is "long enough" (at least ~13)
       rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
       buf.l = 0;
@@ -72,26 +82,51 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
       adj[i].push_back(gfa_name2id(ingfa, ingfa->seg[inca_vid[j].w >> 1].name));
     }
   }
+  std::cout << "nodes: " << labels.size() << "\n";
+  int sl = 0;
+  for (auto l : labels) {
+    sl += l.first.size();
+  }
+  std::cout << "nodes size labels " << sl << "\n";
+  std::cout << "nodes size buffer " << buf.l << "\n";
   if (insn) {
     rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
-    buf.l = 0;
+    // buf.l = 0;
   }
-
+  int dol = 0;
+  fprintf(stderr, "stringbuffer: ");
+  for (unsigned int i = 0; i < buf.l; i++) {
+    fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
+  }
+  std::cout << "nodes size buffer dol " << dol << "\n";
   uintmat_dump(adj, graph_out.c_str());
 
   std::vector<std::vector<unsigned int>> tags(2);
   tags[0].resize(ingfa->n_seg);
   tags[1].resize(ingfa->n_seg);
 
+  // rlc_print_bwt(rlc);
   rlc_dump(rlc, robe_out.c_str());
   fprintf(stderr,
           "[M::%s] dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
           __func__, realtime() - t_start, cputime());
   rlc_destroy(rlc);
 
-  std::stable_sort(labels.begin(), labels.end());
+  std::stable_sort(labels.begin(), labels.end(),
+                   [](const std::pair<std::string, unsigned int> &a,
+                      const std::pair<std::string, unsigned int> &b) {
+                     auto aa(a.first);
+                     for (auto &x : aa)
+                       x = (x != 'N' ? x : 'Z');
+                     auto bb(b.first);
+                     for (auto &x : bb)
+                       x = (x != 'N' ? x : 'Z');
+                     return aa < bb;
+                   });
+  int c = 0;
   for (auto l : labels) {
-    std::cout << l.first << " " << l.second << "\n";
+    std::cout << c << " " << l.first << " " << l.second << "\n";
+    c++;
   }
   int off = 0;
   for (auto l : labels) {
@@ -105,9 +140,22 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     off++;
   }
 
+  for (auto t : tags[0]) {
+    std::cout << t << "\n";
+  }
   uintmat_dump(tags, tag_out.c_str());
   gfa_destroy(ingfa);
   free(buf.s);
+
+  std::vector<std::string> st = {};
+  for (auto l : labels) {
+    st.push_back(l.first);
+  }
+
+  auto d = findDuplicates(st);
+  for (auto dd : d) {
+    std::cout << dd << "\n";
+  }
 }
 
 #endif // GRAPHINDEX_BWT_ROPE_H
