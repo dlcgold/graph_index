@@ -40,15 +40,12 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   ingfa = gfa_read(gfa_file);
   std::vector<std::pair<std::string, unsigned int>> labels;
 
-  int64_t m = (int64_t)(.97 * 10 * 1024 * 1024 * 1024) + 1;
   double t_start = realtime();
   rlcsa_t *rlc = rlc_init();
 
   uint8_t *s;
   kstring_t buf = {0, 0, 0};
-  double ct, rt;
   fflush(stderr);
-  bool start = true;
   std::vector<std::vector<unsigned int>> adj(ingfa->n_seg);
   std::vector<unsigned int> labels_map(ingfa->n_seg);
   int insn = 0;
@@ -62,7 +59,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     s = (uint8_t *)seq;
 
     //  change encoding
-    for (unsigned int j = 0; j < l; ++j)
+    for (int j = 0; j < l; ++j)
       s[j] = fm6_i(s[j]);
 
     kputsn((char *)s, l + 1, &buf);
@@ -80,28 +77,28 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     ++vid;
     gfa_arc_t *inca_vid = gfa_arc_a(ingfa, vid);
     uint32_t n_inca_vid = gfa_arc_n(ingfa, vid);
-    for (int j = 0; j < n_inca_vid; ++j) {
+    for (unsigned int j = 0; j < n_inca_vid; ++j) {
       adj[i].push_back(gfa_name2id(ingfa, ingfa->seg[inca_vid[j].w >> 1].name));
     }
     labels_map[i] = std::stoi(segname);
   }
-  std::cout << "nodes: " << labels.size() << "\n";
+  // std::cout << "nodes: " << labels.size() << "\n";
   int sl = 0;
   for (auto l : labels) {
     sl += l.first.size();
   }
-  std::cout << "nodes size labels " << sl << "\n";
-  std::cout << "nodes size buffer " << buf.l << "\n";
+  // std::cout << "nodes size labels " << sl << "\n";
+  // std::cout << "nodes size buffer " << buf.l << "\n";
   if (insn) {
     rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
     // buf.l = 0;
   }
-  int dol = 0;
-  fprintf(stderr, "stringbuffer: ");
-  for (unsigned int i = 0; i < buf.l; i++) {
-    fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
-  }
-  std::cout << "nodes size buffer dol " << dol << "\n";
+  // int dol = 0;
+  //  fprintf(stderr, "stringbuffer: ");
+  //  for (unsigned int i = 0; i < buf.l; i++) {
+  //    fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
+  //  }
+  // std::cout << "nodes size buffer dol " << dol << "\n";
   uintmat_dump(adj, graph_out.c_str());
   uintvec_dump(labels_map, labels_out.c_str());
   std::vector<std::vector<unsigned int>> tags(2);

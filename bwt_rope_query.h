@@ -197,7 +197,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       if (verbose) {
         fprintf(stderr, "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
                 ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i);
-        fprintf(stderr, "in %d we have %d\n", ic.sai.x[0],
+        fprintf(stderr, "in %ld we have %d\n", ic.sai.x[0],
                 get_bwt_symb(index, ic.sai.x[0]));
       }
       rldintv_t osai[6];
@@ -215,7 +215,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
         }
       }
       if (sai.x[2] > 0) {
-        if (i != 0 && i <= l - tollerance) {
+        if (i != 0 && i <= (int)l - (int)tollerance) {
           symb = i > 0 ? s[i - 1] : 5;
           if (sai.x[2] == 1 && ic.curr_node != tags[0].size() &&
               get_bwt_symb(index, sai.x[0]) == 0) {
@@ -338,7 +338,6 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
   std::vector<unsigned int> labels_map = uintvec_load(l_file.c_str());
-  int cc = 0;
   // for (auto v : adj) {
   //   std::cout << cc << ": ";
   //   for (auto n : v) {
@@ -355,7 +354,6 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     // printf("%d: [%ld, %ld, %ld]\n", c, sai.x[0], sai.x[1], sai.x[2]);
   }
 
-  int errors = 0;
   gzFile fp = gzopen(query_file, "rb");
   kseq_t *ks = kseq_init(fp);
   int l, i;
@@ -373,7 +371,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     //   printf("%d ", s[i]);
     // }
     // std::cout << "\n";
-    rldintv_t osai[6];
+    // rldintv_t osai[6];
     i = l - 1;
     fm6_set_intv(index, s[i], sai);
     if (i == 0) {
@@ -397,7 +395,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     r_c++;
     // fprintf(stderr, "\n-----------------\n");
   }
-  fprintf(stderr, "~Avg total intervals considered for %lld reads: %lld\n", r_c,
+  fprintf(stderr, "~Avg total intervals considered for %d reads: %lld\n", r_c,
           (unsigned long long int)interval_size / r_c);
   kseq_destroy(ks);
   gzclose(fp);
