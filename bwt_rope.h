@@ -32,9 +32,10 @@ auto findDuplicates(std::vector<std::string> &v) {
 }
 
 void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
-  std::string robe_out = out_prefix + ".ser";
-  std::string tag_out = out_prefix + ".tag";
+  std::string robe_out = out_prefix + ".bwt";
+  std::string tag_out = out_prefix + ".dollars";
   std::string graph_out = out_prefix + ".graph";
+  std::string labels_out = out_prefix + ".labels";
   gfa_t *ingfa;
   ingfa = gfa_read(gfa_file);
   std::vector<std::pair<std::string, unsigned int>> labels;
@@ -49,6 +50,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   fflush(stderr);
   bool start = true;
   std::vector<std::vector<unsigned int>> adj(ingfa->n_seg);
+  std::vector<unsigned int> labels_map(ingfa->n_seg);
   int insn = 0;
   std::cout << "nodes: " << ingfa->n_seg << "\n";
   for (unsigned int i = 0; i < ingfa->n_seg; ++i) {
@@ -81,6 +83,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     for (int j = 0; j < n_inca_vid; ++j) {
       adj[i].push_back(gfa_name2id(ingfa, ingfa->seg[inca_vid[j].w >> 1].name));
     }
+    labels_map[i] = std::stoi(segname);
   }
   std::cout << "nodes: " << labels.size() << "\n";
   int sl = 0;
@@ -100,7 +103,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   }
   std::cout << "nodes size buffer dol " << dol << "\n";
   uintmat_dump(adj, graph_out.c_str());
-
+  uintvec_dump(labels_map, labels_out.c_str());
   std::vector<std::vector<unsigned int>> tags(2);
   tags[0].resize(ingfa->n_seg);
   tags[1].resize(ingfa->n_seg);

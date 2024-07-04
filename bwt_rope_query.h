@@ -26,7 +26,9 @@
 KSEQ_INIT(gzFile, gzread)
 
 bool verbose = false;
-int interval_size = 1;
+unsigned long long int interval_size = 0;
+unsigned long long int interval_size_avg = 1;
+
 struct node_sai {
   rldintv_t sai;
   unsigned int curr_node;
@@ -165,7 +167,8 @@ get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
 
 void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
          rldintv_t &sai, std::vector<std::vector<unsigned int>> &tags,
-         std::vector<std::vector<unsigned int>> &adj, unsigned int curr_node,
+         std::vector<std::vector<unsigned int>> &adj,
+         std::vector<unsigned int> labels_map, unsigned int curr_node,
          char *read_name) {
 
   unsigned int tollerance = l / 5;
@@ -245,7 +248,11 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
           }
         }
         int_next.push_back({sai, ic.curr_node, ic.path});
+
         interval_size += int_next.size();
+        // fprintf(stderr, "INTERVALS: %ld %ld\n", interval_size,
+        // int_next.size());
+
         if (verbose) {
           for (auto ic : int_next) {
             fprintf(stderr, "tmp next [%ld, %ld, %ld]\n", ic.sai.x[0],
@@ -281,11 +288,11 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
             // fprintf(stderr, "%ld ", ic.path[i]);
             if (i != 0) {
               std::ostringstream s;
-              s << ic.path[i] << ">";
+              s << labels_map[ic.path[i]] << ">";
               matches = matches + s.str();
             } else {
               std::ostringstream s;
-              s << ic.path[i];
+              s << labels_map[ic.path[i]];
               matches = matches + s.str();
             }
           }
@@ -294,13 +301,13 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
           //  fprintf(stderr, "\n");
         } else {
           // fprintf(stderr, "Match at node: %ld\n", ic.curr_node);
-          fprintf(stderr, "@%s\t%d\n", read_name, ic.curr_node);
+          fprintf(stderr, "@%s\t%d\n", read_name, labels_map[ic.curr_node]);
         }
       } else {
         for (unsigned int k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
           auto node_f = findnode(index, k, tags[0].size(), tags);
           // fprintf(stderr, "Match at node: %ld\n", node_f);
-          fprintf(stderr, "@%s\t%d\n", read_name, node_f);
+          fprintf(stderr, "@%s\t%d\n", read_name, labels_map[node_f]);
         }
       }
     } else {
@@ -311,9 +318,10 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
 
 void query_bwt_rope(std::string index_pre, const char *query_file,
                     int threads) {
-  auto i_file = index_pre + ".ser";
-  auto t_file = index_pre + ".tag";
+  auto i_file = index_pre + ".bwt";
+  auto t_file = index_pre + ".dollars";
   auto g_file = index_pre + ".graph";
+  auto l_file = index_pre + ".labels";
 
   rld_t *index = rld_restore(i_file.c_str());
 
@@ -329,7 +337,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   // std::cerr << "\n";
 
   std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
-
+  std::vector<unsigned int> labels_map = uintvec_load(l_file.c_str());
   int cc = 0;
   // for (auto v : adj) {
   //   std::cout << cc << ": ";
@@ -373,7 +381,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
       for (unsigned int k = sai.x[0]; k < sai.x[0] + sai.x[2]; k++) {
         auto node_f = findnode(index, k, tags[0].size(), tags);
         // fprintf(stderr, "Match at node %d\n", node_f);
-        fprintf(stderr, "%s\t%d\n", ks->name.s, node_f);
+        fprintf(stderr, "%s\t%d\n", ks->name.s, labels_map[node_f]);
       }
 
     } else {
@@ -381,15 +389,16 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
       auto s_b = sai.x[1];
       sai.x[1] = tags[0].size();
       // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
-      ext(index, s, i, l, sai, tags, adj, tags[0].size(), ks->name.s);
+      ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(),
+          ks->name.s);
       // fprintf(stderr, "finished");
       sai.x[1] = s_b;
     }
     r_c++;
     // fprintf(stderr, "\n-----------------\n");
   }
-  fprintf(stderr, "Avg total intervals considered for %ld reads: %d\n", r_c,
-          (int)interval_size / r_c);
+  fprintf(stderr, "~Avg total intervals considered for %lld reads: %lld\n", r_c,
+          (unsigned long long int)interval_size / r_c);
   kseq_destroy(ks);
   gzclose(fp);
   rld_destroy(index);
