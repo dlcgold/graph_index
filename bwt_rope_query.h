@@ -133,13 +133,16 @@ get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
       std::cerr << "\n";
     }
     for (auto n : end_nodes) {
-      // std::fprintf(stderr, "considering node %ld\n", n);
       auto adj_nodes = get_adj_nodes_f(index, n, tags, adj);
       for (auto an : adj_nodes) {
         rldintv_t sai_t;
         sai_t.x[0] = an.first;
         sai_t.x[1] = an.first;
         sai_t.x[2] = 1;
+        if (verbose) {
+          fprintf(stderr, "comparing %d vs %d\n", get_bwt_symb(index, an.first),
+                  symb);
+        }
         if (get_bwt_symb(index, an.first) == symb) {
           std::vector<unsigned int> nn = {n, an.second};
           intervals.push_back({sai_t, an.second, nn});
@@ -174,7 +177,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
   unsigned int tollerance = l / 5;
   tollerance = 0;
 
-  uint8_t symb = i > 0 ? s[i - 1] : 5;
+  uint8_t symb = i > 0 ? s[i] : 5;
   // std::vector<unsigned int> match_nodes;
   std::vector<node_sai> int_curr =
       get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
@@ -218,6 +221,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       if (sai.x[2] > 0) {
         if (i != 0 && i <= (int)l - (int)tollerance) {
           symb = i > 0 ? s[i - 1] : 5;
+
           if (sai.x[2] == 1 && ic.curr_node != tags[0].size() &&
               get_bwt_symb(index, sai.x[0]) == 0) {
             auto tmp_int = get_intervals(index, sai.x[0], sai.x[2], tags, adj,
@@ -362,9 +366,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   int l, i;
   int r_c = 0;
   while ((l = kseq_read(ks)) >= 0) {
-    // std::fprintf(stderr, "read %s\n", ks->name.s);
-
-    r_c++;
+    std::fprintf(stderr, "%d\r", r_c);
     s = (uint8_t *)ks->seq.s;
     // change encoding
     for (i = 0; i < l; ++i) {
