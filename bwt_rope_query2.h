@@ -44,8 +44,18 @@ struct node_sai {
 };
 
 std::vector<node_sai> merge(std::vector<node_sai> intervals) {
-
+  // std::sort(intervals.begin(), intervals.end(),
+  //           [](const node_sai &a, const node_sai &b) {
+  //             return a.sai.x[0] < b.sai.x[0];
+  //           });
+  //
   std::sort(intervals.begin(), intervals.end());
+  // intervals.erase(std::unique(intervals.begin(), intervals.end(),
+  //                             [](const node_sai &a, const node_sai &b) {
+  //                               return a.sai.x[0] == b.sai.x[0] &&
+  //                                      a.sai.x[2] == b.sai.x[2];
+  //                             }),
+  //                 intervals.end());
 
   intervals.erase(std::unique(intervals.begin(), intervals.end()),
                   intervals.end());
@@ -111,6 +121,7 @@ get_end_nodes(const rld_t *index, unsigned int b_i, unsigned int l_i,
     auto end_node = 0;
     if (tags[0][j] != tags[0].size() - 1)
       end_node = tags[0][j] + 1;
+
     nodes.push_back(end_node);
   }
   return nodes;

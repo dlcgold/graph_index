@@ -86,30 +86,30 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   std::vector<std::vector<unsigned int>> adj_f(ingfa->n_seg);
   std::vector<unsigned int> labels_map_f(ingfa->n_seg);
 
-  std::stable_sort(labels.begin(), labels.end(),
-                   [](const std::pair<std::string, unsigned int> &a,
-                      const std::pair<std::string, unsigned int> &b) {
-                     auto aa(a.first);
-                     for (auto &x : aa)
-                       x = (x != 'N' ? x : 'Z');
-                     auto bb(b.first);
-                     for (auto &x : bb)
-                       x = (x != 'N' ? x : 'Z');
-                     return aa < bb;
-                   });
   // std::stable_sort(labels.begin(), labels.end(),
   //                  [](const std::pair<std::string, unsigned int> &a,
   //                     const std::pair<std::string, unsigned int> &b) {
-  //                    // auto aa(a.first);
-  //                    auto aa = std::string(a.first.rbegin(), a.first.rend());
+  //                    auto aa(a.first);
   //                    for (auto &x : aa)
   //                      x = (x != 'N' ? x : 'Z');
-  //                    // auto bb(b.first);
-  //                    auto bb = std::string(b.first.rbegin(), b.first.rend());
+  //                    auto bb(b.first);
   //                    for (auto &x : bb)
   //                      x = (x != 'N' ? x : 'Z');
   //                    return aa < bb;
   //                  });
+  std::stable_sort(labels.begin(), labels.end(),
+                   [](const std::pair<std::string, unsigned int> &a,
+                      const std::pair<std::string, unsigned int> &b) {
+                     // auto aa(a.first);
+                     auto aa = std::string(a.first.rbegin(), a.first.rend());
+                     for (auto &x : aa)
+                       x = (x != 'N' ? x : 'Z');
+                     // auto bb(b.first);
+                     auto bb = std::string(b.first.rbegin(), b.first.rend());
+                     for (auto &x : bb)
+                       x = (x != 'N' ? x : 'Z');
+                     return aa < bb;
+                   });
 
   auto map_l = std::vector<unsigned int>(labels.size());
   auto j = 0;
@@ -179,24 +179,24 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
                __func__, realtime() - t_start, cputime());
   rlc_destroy(rlc);
 
-  // int c = 0;
-  // for (auto &l : labels) {
-  //   l.second = c;
-  //   // std::cout << c << " " << l.first << " " << l.second << "\n";
-  //   c++;
-  // }
+  int c = 0;
+  for (auto &l : labels) {
+    l.second = c;
+    // std::cout << c << " " << l.first << " " << l.second << "\n";
+    c++;
+  }
 
-  // std::stable_sort(labels.begin(), labels.end(),
-  //                  [](const std::pair<std::string, unsigned int> &a,
-  //                     const std::pair<std::string, unsigned int> &b) {
-  //                    auto aa(a.first);
-  //                    for (auto &x : aa)
-  //                      x = (x != 'N' ? x : 'Z');
-  //                    auto bb(b.first);
-  //                    for (auto &x : bb)
-  //                      x = (x != 'N' ? x : 'Z');
-  //                    return aa < bb;
-  //                  });
+  std::stable_sort(labels.begin(), labels.end(),
+                   [](const std::pair<std::string, unsigned int> &a,
+                      const std::pair<std::string, unsigned int> &b) {
+                     auto aa(a.first);
+                     for (auto &x : aa)
+                       x = (x != 'N' ? x : 'Z');
+                     auto bb(b.first);
+                     for (auto &x : bb)
+                       x = (x != 'N' ? x : 'Z');
+                     return aa < bb;
+                   });
 
   // c = 0;
   // for (auto l : labels) {
@@ -204,26 +204,26 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   //   c++;
   // }
   //
-  // int off = 0;
-  // for (auto l : labels) {
-  //   if (l.second == 0) {
-  //     tags[0][off] = ingfa->n_seg - 1;
-  //     tags[1][off] = off;
-  //   } else {
-  //     tags[0][off] = l.second - 1;
-  //     tags[1][off] = off;
-  //   }
-  //   off++;
-  // }
-  for (int off = 0; off < labels.size(); off++) {
-    if (off == 0) {
+  int off = 0;
+  for (auto l : labels) {
+    if (l.second == 0) {
       tags[0][off] = ingfa->n_seg - 1;
       tags[1][off] = off;
     } else {
-      tags[0][off] = off - 1;
+      tags[0][off] = l.second - 1;
       tags[1][off] = off;
     }
+    off++;
   }
+  // for (int off = 0; off < labels.size(); off++) {
+  //   if (off == 0) {
+  //     tags[0][off] = ingfa->n_seg - 1;
+  //     tags[1][off] = off;
+  //   } else {
+  //     tags[0][off] = off - 1;
+  //     tags[1][off] = off;
+  //   }
+  // }
   // for (auto t : tags[0]) {
   //   std::cout << t << "\n";
   // }
