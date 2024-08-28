@@ -29,6 +29,29 @@ bool verbose = false;
 unsigned long long int interval_size = 0;
 unsigned long long int interval_size_avg = 1;
 
+struct node_match {
+  unsigned int node = 0;
+  unsigned int l_off = 0;
+  unsigned int r_off = 0;
+
+  bool operator<(const node_match &other) const {
+    if (node == other.node) {
+      if (l_off == other.l_off) {
+        return r_off < other.r_off;
+      } else {
+        return l_off < other.l_off;
+      }
+    } else {
+      return node < other.node;
+    }
+  }
+};
+
+std::ostream &operator<<(std::ostream &os, node_match const &n) {
+  os << "[" << n.node << ", " << n.l_off << ", " << n.r_off << "]";
+  return os;
+}
+
 struct node_sai {
   rldintv_t sai;
   unsigned int curr_node;
@@ -76,6 +99,44 @@ uint8_t get_bwt_symb(const rld_t *index, unsigned int pos) {
   }
   return symb;
 }
+
+node_match findnode_off(const rld_t *index, unsigned int pos, unsigned end,
+                        std::vector<std::vector<unsigned int>> &tags,
+                        unsigned int l) {
+  // std::fprintf(stderr, "pos %d", pos);
+  node_match r;
+  uint8_t symb = get_bwt_symb(index, pos);
+  rldintv_t sai;
+  sai.x[0] = pos;
+  sai.x[1] = pos;
+  sai.x[2] = 1;
+  rldintv_t osai[6];
+  while (symb != 0) {
+    rld_extend(index, &sai, osai, 1);
+    sai = osai[symb];
+    symb = get_bwt_symb(index, sai.x[0]);
+    r.l_off++;
+  }
+  // std::cout << "dollar: " << rld_rank11(index, sai.x[0], 0) << " at "
+  //           << sai.x[0] << "\n";
+  auto end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+  if (end_node != end - 1) {
+    r.node = end_node + 1;
+  }
+  r.r_off = tags[2][r.node] - r.l_off - l;
+  // sai.x[0] = pos;
+  // sai.x[1] = pos;
+  // sai.x[2] = 1;
+  // rldintv_t osair[6];
+  // while (symb != 0) {
+  //   rld_extend(index, &sai, osair, 0);
+  //   sai = osair[fm6_comp(symb)];
+  //   symb = get_bwt_symb(index, sai.x[0]);
+  //   r.r_off++;
+  // }
+  return r;
+}
+
 unsigned int findnode(const rld_t *index, unsigned int pos, unsigned end,
                       std::vector<std::vector<unsigned int>> &tags) {
   // std::fprintf(stderr, "pos %d", pos);
@@ -355,11 +416,111 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
   }
 }
 
+std::pair<std::vector<uint8_t *>, unsigned int>
+split_s(const uint8_t *s, unsigned int l, unsigned int s_p) {
+  std::vector<uint8_t *> r;
+
+  size_t start = l;
+  size_t f_l = 0;
+
+  while (start > 0) {
+    size_t end = start;
+    start = (start > s_p) ? start - s_p : 0;
+
+    uint8_t *segment = new uint8_t[end - start];
+    std::copy(s + start, s + end, segment);
+
+    if (start == 0) {
+      f_l = end - start;
+    }
+    r.insert(r.begin(), segment);
+  }
+  return std::make_pair(r, f_l);
+}
+
+std::vector<node_match>
+locate_nodes(const rld_t *index, const uint8_t *s, unsigned int l,
+             std::vector<std::vector<unsigned int>> &tags) {
+  std::vector<node_match> nodes;
+  // for (int i = 0; i < l; i++) {
+  //   std::cout << "$ACTG"[s[i]];
+  // }
+  // std::cout << "\n";
+  rldintv_t sai;
+
+  int i = l - 1;
+  rldintv_t osai[6];
+  fm6_set_intv(index, s[i], sai);
+  --i;
+
+  for (; i >= 0; --i) {
+    rld_extend(index, &sai, osai, 1);
+    sai = osai[s[i]];
+    if (sai.x[2] <= 0) {
+      break;
+    }
+  }
+
+  for (unsigned int k = sai.x[0]; k < sai.x[0] + sai.x[2]; k++) {
+    auto node_f = findnode_off(index, k, tags[0].size(), tags, l);
+    // std::fprintf(stderr, "Match at node: %ld\n", node_f);
+    nodes.push_back(node_f);
+  }
+  std::sort(nodes.begin(), nodes.end());
+  return nodes;
+}
+
+void match(const rld_t *index, const uint8_t *s, unsigned int l,
+           unsigned int s_p, std::vector<std::vector<unsigned int>> &tags) {
+  auto sub_s = split_s(s, l, s_p);
+  for (int i = 0; i < l; i++) {
+    std::cout << "$ACGT"[s[i]];
+  }
+  std::cout << "\n";
+
+  for (int i = 0; i < sub_s.first.size(); i++) {
+    auto ll = (i == 0) ? sub_s.second : s_p;
+    for (int j = 0; j < ll; j++) {
+      std::cout << "$ACGT"[sub_s.first[i][j]];
+    }
+    std::cout << "\n";
+  }
+
+  // std::cout << "\n";
+  auto f_n = std::vector<std::vector<node_match>>(sub_s.first.size());
+  for (int i = 0; i < sub_s.first.size(); i++) {
+
+    auto ll = (i == 0) ? sub_s.second : s_p;
+    // std::cout << ll << "\n";
+    // for (int j = 0; j < ll; j++) {
+    //   std::cout << "$ACTG"[sub_s.first[i][j]];
+    // }
+    // std::cout << "\n";
+    // fflush(stdout);
+    f_n[i] = locate_nodes(index, sub_s.first[i], ll, tags);
+    // for (auto n : f_n[i]) {
+    //   std::cout << n;
+    // }
+    // std::cout << "\n";
+  }
+  int i = 0;
+  std::cout << f_n.size() << "\n";
+  for (auto nn : f_n) {
+    std::cout << i << ": ";
+    for (auto n : nn) {
+      std::cout << n << " ";
+    }
+    std::cout << "\n";
+    i++;
+  }
+}
+
 void query_bwt_rope(std::string index_pre, const char *query_file,
                     int threads) {
   auto i_file = index_pre + ".bwt";
   auto t_file = index_pre + ".dollars";
-  auto g_file = index_pre + ".graph";
+  auto g_file = index_pre + ".graphi";
+  auto g_file2 = index_pre + ".grapho";
   auto l_file = index_pre + ".labels";
 
   rld_t *index = rld_restore(i_file.c_str());
@@ -376,6 +537,23 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   // std::cerr << "\n";
 
   std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
+  std::vector<std::vector<unsigned int>> adj2 = uintmat_load(g_file2.c_str());
+  unsigned int max_l = adj[adj.size() - 1][0];
+  unsigned int avg_l = adj[adj.size() - 1][1];
+  // unsigned int s_p = 0;
+  // if (max_l >= 32) {
+  //   s_p = 32;
+  // } else {
+  //   s_p = max_l;
+  // }
+  // s_p = avg_l;
+
+  auto s_p = threads;
+  if (s_p > avg_l) {
+    s_p = avg_l;
+  }
+  std::cerr << "max_l = " << max_l << " avg_l = " << avg_l << " s_p = " << s_p
+            << std::endl;
   std::vector<unsigned int> labels_map = uintvec_load(l_file.c_str());
   // for (auto v : adj) {
   //   std::cout << cc << ": ";
@@ -400,40 +578,45 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   while ((l = kseq_read(ks)) >= 0) {
     std::fprintf(stderr, "%d\r", r_c);
     s = (uint8_t *)ks->seq.s;
+    for (i = 0; i < l; ++i) {
+      printf("%c", ks->seq.s[i]);
+    }
+    printf("\n");
+
     // change encoding
     for (i = 0; i < l; ++i) {
       s[i] = fm6_i(s[i]);
     }
-    // for (i = 0; i < l; ++i) {
-    //   printf("%d ", s[i]);
-    // }
-    // std::cout << "\n";
-    // rldintv_t osai[6];
-    i = l - 1;
-    fm6_set_intv(index, s[i], sai);
-    if (i == 0) {
-
-      for (unsigned int k = sai.x[0]; k < sai.x[0] + sai.x[2]; k++) {
-        auto node_f = findnode(index, k, tags[0].size(), tags);
-        // std::fprintf(stderr, "Match at node %d\n", node_f);
-        std::fprintf(stderr, "%s\t%d\n", ks->name.s, labels_map[node_f]);
-      }
-
-    } else {
-      --i;
-      auto s_b = sai.x[1];
-      sai.x[1] = tags[0].size();
-      // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
-      ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(),
-          ks->name.s);
-      // std::fprintf(stderr, "finished");
-      sai.x[1] = s_b;
+    for (i = 0; i < l; ++i) {
+      printf("%d", s[i]);
     }
-    r_c++;
-    // std::fprintf(stderr, "\n-----------------\n");
+
+    printf("\n");
+    // i = l - 1;
+    // fm6_set_intv(index, s[i], sai);
+    // if (i == 0) {
+
+    //   for (unsigned int k = sai.x[0]; k < sai.x[0] + sai.x[2]; k++) {
+    //     auto node_f = findnode(index, k, tags[0].size(), tags);
+    //     // std::fprintf(stderr, "Match at node %d\n", node_f);
+    //     std::fprintf(stderr, "%s\t%d\n", ks->name.s, labels_map[node_f]);
+    //   }
+
+    // } else {
+    //   --i;
+    //   auto s_b = sai.x[1];
+    //   sai.x[1] = tags[0].size();
+    //   ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(),
+    //       ks->name.s);
+    //   sai.x[1] = s_b;
+    // }
+    // r_c++;
+
+    match(index, s, l, s_p, tags);
   }
-  std::fprintf(stderr, "~Avg total intervals considered for %d reads: %lld\n",
-               r_c, (unsigned long long int)interval_size / r_c);
+  // std::fprintf(stderr, "~Avg total intervals considered for %d reads:
+  // %lld\n",
+  //              r_c, (unsigned long long int)interval_size / r_c);
   kseq_destroy(ks);
   gzclose(fp);
   rld_destroy(index);
