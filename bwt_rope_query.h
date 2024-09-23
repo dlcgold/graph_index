@@ -30,6 +30,9 @@ unsigned long long int interval_size = 0;
 unsigned long long int interval_size_avg = 1;
 
 std::vector<std::vector<unsigned int>> interval_spectrum;
+
+int log4(int x) { return log(x) / log(4); }
+
 struct node_sai {
   rldintv_t sai;
   unsigned int curr_node;
@@ -236,6 +239,7 @@ std::vector<node_sai> ext_int(const rld_t *index, const uint8_t *s, int i,
   std::vector<node_sai> int_next;
   bool start = true;
   int db = 0;
+
   for (; i >= 0; --i) {
     db++;
     if (verbose) {
@@ -332,6 +336,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
   tollerance = 0;
 
   uint8_t symb = i > 0 ? s[i] : 5;
+  i--;
   // std::vector<unsigned int> match_nodes;
   // std::vector<node_sai> int_curr =
   //     get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
@@ -339,6 +344,13 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
   // int_curr.push_back({sai, curr_node});
   //
   std::vector<node_sai> int_curr = int_s;
+
+  for (auto t : int_s) {
+    auto tmp_int =
+        get_intervals(index, t.sai.x[0], t.sai.x[2], tags, adj, symb, {});
+    int_curr.insert(int_curr.end(), tmp_int.begin(), tmp_int.end());
+  }
+  int_curr = merge(int_curr);
   if (verbose) {
     std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
     for (auto ic : int_curr) {
@@ -479,9 +491,20 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
         }
       } else {
         for (unsigned int k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
-          auto node_f = findnode(index, k, tags[0].size(), tags);
-          // std::fprintf(stderr, "Match at node: %ld\n", node_f);
-          std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[node_f]);
+          uint8_t symb = get_bwt_symb(index, k);
+          if (symb == 0) {
+            auto end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+            if (end_node == tags[0].size() - 1) {
+              std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[0]);
+            } else {
+              std::fprintf(stdout, "@%s\t%d\n", read_name,
+                           labels_map[end_node + 1]);
+            }
+          } else {
+            auto node_f = findnode(index, k, tags[0].size(), tags);
+            // std::fprintf(stderr, "Match at node: %ld\n", node_f);
+            std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[node_f]);
+          }
         }
       }
     } else {
@@ -498,22 +521,6 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   auto l_file = index_pre + ".labels";
   auto c_file = index_pre + ".cache";
 
-  std::vector<std::string> suff(1024);
-  std::map<std::string, unsigned int> suff_map;
-
-  unsigned int ls = 5;
-  for (int i = 0; i < 1024; ++i) {
-    std::string suff_t(5, ' ');
-    int cur = i;
-
-    for (int j = 0; j < 5; j++) {
-      suff_t[j] = "ACGT"[cur % 4];
-      cur /= 4;
-    }
-    // std::cout << suff_t << "\n";
-    suff_map[suff_t] = i;
-    // std::cout << suff[i] << "\n";
-  }
   rld_t *index = rld_restore(i_file.c_str());
 
   std::vector<std::vector<unsigned int>> tags = uintmat_load(t_file.c_str());
@@ -533,8 +540,25 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   std::vector<std::vector<std::vector<unsigned int>>> c_int =
       uintmat3_load(c_file.c_str());
 
-  std::vector<std::vector<node_sai>> cache(1024);
+  std::vector<std::vector<node_sai>> cache(c_int.size());
 
+  std::vector<std::string> suff(cache.size());
+  std::map<std::string, unsigned int> suff_map;
+
+  unsigned int ls = log4(cache.size());
+  std::cerr << "seeds of size " << cache.size() << " " << ls << "\n";
+  for (int i = 0; i < cache.size(); ++i) {
+    std::string suff_t(ls, ' ');
+    int cur = i;
+
+    for (int j = 0; j < ls; j++) {
+      suff_t[j] = "ACGT"[cur % 4];
+      cur /= 4;
+    }
+    // std::cout << suff_t << "\n";
+    suff_map[suff_t] = i;
+    // std::cout << suff[i] << "\n";
+  }
   //
   int k = 0;
   for (auto s : c_int) {
@@ -582,16 +606,16 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   std::fflush(stdout);
   while ((l = kseq_read(ks)) >= 0) {
-    // std::fprintf(stderr, "%d\r", r_c);
+    std::fprintf(stderr, "%d\r", r_c);
 
     s = (uint8_t *)ks->seq.s;
 
-    std::string suf(5, ' ');
+    std::string suf(ls, ' ');
     int sufc = 0;
     // change encoding
     for (i = 0; i < l; ++i) {
       s[i] = fm6_i(s[i]);
-      if (i >= l - 5) {
+      if (i >= l - ls) {
         suf[sufc] = map[s[i]];
         sufc++;
       }
@@ -611,12 +635,15 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     // }
     // std::cout << "\n";
     // rldintv_t osai[6];
-    l -= 4;
+    // l -= (ls-1);
+
+    l -= (ls - 1);
     i = l - 1;
-    fm6_set_intv(index, s[i], sai);
-    --i;
-    auto s_b = sai.x[1];
-    sai.x[1] = tags[0].size();
+    // i = l;
+    // fm6_set_intv(index, s[i], sai);
+    // --i;
+    // auto s_b = sai.x[1];
+    // sai.x[1] = tags[0].size();
 
     // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
     ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(), ks->name.s,

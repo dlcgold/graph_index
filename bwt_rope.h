@@ -12,6 +12,7 @@
 #include "mfmi/rlcsa.hpp"
 #include "rlcsa.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -335,7 +336,8 @@ auto findDuplicates(std::vector<std::string> &v) {
   return res;
 }
 
-void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
+void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
+                    int cache) {
   std::string rope_out = out_prefix + ".bwt";
   std::string tag_out = out_prefix + ".dollars";
   std::string graph_out = out_prefix + ".graph";
@@ -546,69 +548,71 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
   //   std::cout << dd << "\n";
   // }
   //
-  std::vector<std::vector<node_sai>> intervals(1024);
-  std::vector<std::string> suff(1024);
-  unsigned int ls = 5;
+  // std::vector<std::vector<node_sai>> intervals(1024);
+  // std::vector<std::string> suff(1024);
+  // unsigned int ls = 5;
 
-  for (int i = 0; i < 1024; ++i) {
-    std::string suff_t(5, ' ');
-    int cur = i;
+  // for (int i = 0; i < 1024; ++i) {
+  //   std::string suff_t(5, ' ');
+  //   int cur = i;
 
-    for (int j = 0; j < 5; j++) {
-      suff_t[j] = "ACGT"[cur % 4];
-      cur /= 4;
-    }
+  //   for (int j = 0; j < 5; j++) {
+  //     suff_t[j] = "ACGT"[cur % 4];
+  //     cur /= 4;
+  //   }
 
-    suff[i] = suff_t;
-    // std::cout << suff[i] << "\n";
-  }
+  //   suff[i] = suff_t;
+  //   // std::cout << suff[i] << "\n";
+  // }
 
   rld_t *index = rld_restore(rope_out.c_str());
   rldintv_t sai;
   for (int c = 0; c < 6; ++c) {
     fm6_set_intv(index, c, sai);
   }
-  auto suff_b = suff;
-  // #pragma omp parallel for
-  //   for (int j = 0; j < suff.size(); j++) {
-  //     s = (uint8_t *)suff[j].c_str();
-  //     // change encoding
-  //     for (int i = 0; i < 5; ++i) {
-  //       s[i] = fm6_i(s[i]);
-  //     }
-  //     // for (int i = 0; i < 5; ++i) {
-  //     //   printf("%d ", s[i]);
-  //     // }
-  //     std::cerr << j << "\r";
-  //     // rldintv_t osai[6];
-  //     int i = 4;
-  //     fm6_set_intv(index, s[i], sai);
-  //     --i;
-  //     auto s_b = sai.x[1];
-  //     sai.x[1] = tags[0].size();
-  //     // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
-  //     intervals[j] =
-  //         ext_int(index, s, i, 5, sai, tags, adj, labels_map,
-  //         tags[0].size());
-  //     // std::fprintf(stderr, "finished");
-  //   }
-  //   std::vector<std::vector<std::vector<unsigned int>>> intervals_f(1024);
-  //   int k = 0;
-  //   for (auto s : intervals) {
-  //     std::cout << k << " " << suff_b[k] << ": ";
-  //     std::vector<std::vector<unsigned int>> tmp_v;
-  //     for (auto i : s) {
-  //       std::vector<unsigned int> t = {0, i.sai.x[0], i.sai.x[1], i.sai.x[2],
-  //                                      i.curr_node};
-  //       tmp_v.push_back(t);
-  //       std::cout << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << " "
-  //                 << t[4] << "\n";
-  //     }
-  //     // if (!tmp_v.empty())
-  //     std::cout << std::endl;
-  //     intervals_f[k] = tmp_v;
-  //     k++;
-  //   }
+  // auto suff_b = suff;
+  //  #pragma omp parallel for
+  //    for (int j = 0; j < suff.size(); j++) {
+  //      s = (uint8_t *)suff[j].c_str();
+  //      // change encoding
+  //      for (int i = 0; i < 5; ++i) {
+  //        s[i] = fm6_i(s[i]);
+  //      }
+  //      // for (int i = 0; i < 5; ++i) {
+  //      //   printf("%d ", s[i]);
+  //      // }
+  //      std::cerr << j << "\r";
+  //      // rldintv_t osai[6];
+  //      int i = 4;
+  //      fm6_set_intv(index, s[i], sai);
+  //      --i;
+  //      auto s_b = sai.x[1];
+  //      sai.x[1] = tags[0].size();
+  //      // auto nodes = ext(index, s, i, l, sai, tags, adj, tags[0].size());
+  //      intervals[j] =
+  //          ext_int(index, s, i, 5, sai, tags, adj, labels_map,
+  //          tags[0].size());
+  //      // std::fprintf(stderr, "finished");
+  //    }
+  //    std::vector<std::vector<std::vector<unsigned int>>> intervals_f(1024);
+  //    int k = 0;
+  //    for (auto s : intervals) {
+  //      std::cout << k << " " << suff_b[k] << ": ";
+  //      std::vector<std::vector<unsigned int>> tmp_v;
+  //      for (auto i : s) {
+  //        std::vector<unsigned int> t = {0, i.sai.x[0], i.sai.x[1],
+  //        i.sai.x[2],
+  //                                       i.curr_node};
+  //        tmp_v.push_back(t);
+  //        std::cout << t[0] << " " << t[1] << " " << t[2] << " " << t[3] << "
+  //        "
+  //                  << t[4] << "\n";
+  //      }
+  //      // if (!tmp_v.empty())
+  //      std::cout << std::endl;
+  //      intervals_f[k] = tmp_v;
+  //      k++;
+  //    }
 
   //   for (auto s : intervals_f) {
   //     // std::cout << s.size() << "\n";
@@ -622,24 +626,24 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
 
   //   uintmat3_dump(intervals_f, int_out.c_str());
 
-  std::vector<std::vector<std::vector<node_sai>>> intervals_fast(5);
+  std::vector<std::vector<std::vector<node_sai>>> intervals_fast(cache);
 
   for (int c = 1; c < 5; ++c) {
     fm6_set_intv(index, c, sai);
     // printf("%d: [%ld, %ld, %ld]\n", c, sai.x[0], sai.x[1], sai.x[2]);
 
     std::vector<node_sai> e = {{sai, tags[0].size()}};
-    intervals_fast[4].push_back(e);
+    intervals_fast[cache - 1].push_back(e);
     auto tmp_int = get_intervals(index, sai.x[0], sai.x[2], tags, adj, c, {});
-    intervals_fast[4][c - 1].insert(intervals_fast[4][c - 1].end(),
-                                    tmp_int.begin(), tmp_int.end());
+    intervals_fast[cache - 1][c - 1].insert(
+        intervals_fast[cache - 1][c - 1].end(), tmp_int.begin(), tmp_int.end());
     // printf("%d: [%ld, %ld, %ld]\n", c,
     // intervals_fast[4].back()[0].sai.x[0],
     //        intervals_fast[4].back()[0].sai.x[1],
     //        intervals_fast[4].back()[0].sai.x[2]);
   }
-  // std::cerr << "Preparing cache, this will take time\n";
-  for (int i = 3; i >= 0; i--) {
+  std::cerr << "Preparing cache, this will take time\n";
+  for (int i = cache - 2; i >= 0; i--) {
 
     // for (int j = intervals_fast[i + 1].size() - 1; j >= 0; j--) {
     for (int j = 0; j < intervals_fast[i + 1].size(); j++) {
@@ -661,7 +665,8 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads) {
     }
     std::cerr << intervals_fast[i].size() << "\n";
   }
-  std::vector<std::vector<std::vector<unsigned int>>> intervals_f(1024);
+  std::vector<std::vector<std::vector<unsigned int>>> intervals_f(
+      (int)std::pow(4, cache));
   int k = 0;
   for (auto s : intervals_fast[0]) {
     // std::cout << k << " " << suff[k] << ": ";

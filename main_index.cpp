@@ -3,6 +3,7 @@
 #include <string>
 
 #include "bwt_rope.h"
+// #include "bwt_rope_query.h"
 
 void printHelp() {
   std::cout << "Usage: gindex [options]\n" << std::endl;
@@ -18,16 +19,18 @@ int main(int argc, char **argv) {
   std::string gfa_file = "";
   std::string out_prefix = "";
   int threads = 1;
+  int cache = 1;
   while (true) {
     static struct option long_options[] = {
         {"input", required_argument, nullptr, 'i'},
         {"output", required_argument, nullptr, 'o'},
+        {"cache", required_argument, nullptr, 'c'},
         {"threads", required_argument, nullptr, 't'},
         {"help", no_argument, nullptr, 'h'},
         {nullptr, 0, nullptr, 0}};
 
     int option_index = 0;
-    int c = getopt_long(argc, argv, "i:o:t:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "i:o:c:t:", long_options, &option_index);
 
     if (c == -1) {
       break;
@@ -40,6 +43,9 @@ int main(int argc, char **argv) {
     case 'o':
       out_prefix = optarg;
       break;
+    case 'c':
+      cache = atoi(optarg);
+      break;
     case 't':
       threads = atoi(optarg);
       break;
@@ -51,6 +57,9 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
     }
   }
-  build_bwt_rope(gfa_file.c_str(), out_prefix, threads);
+  if (cache <= 0) {
+    cache = 1;
+  }
+  build_bwt_rope(gfa_file.c_str(), out_prefix, threads, cache);
   return 0;
 }
