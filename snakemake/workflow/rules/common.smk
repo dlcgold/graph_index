@@ -75,6 +75,8 @@ rule generateReads:
         os.path.join(gfa),
     output:
         os.path.join(input_folder, "q_{q}", "reads.fa"),
+    conda:
+         "../envs/gen.yml"
     shell:
         """
         python workflow/scripts/read_gen.py {input} {n_queries} {wildcards.q} {wildcards.q} > {output}
