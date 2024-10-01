@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 #include <zlib.h>
-
+#include <climits>
 #include "kseq.h"
 #include "rld0.h"
 #include "utils.h"
