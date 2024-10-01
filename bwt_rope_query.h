@@ -6,7 +6,7 @@
 #define GRAPHINDEX_BWT_ROPE_QUERY_H
 #include "utils.h"
 
-#include "commmon.h"
+#include "common.h"
 #include "kseq.h"
 #include "rld0.h"
 #include "utils.h"

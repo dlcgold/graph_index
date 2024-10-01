@@ -59,8 +59,9 @@ ext_by_alph(const rld_t *index, std::vector<std::vector<unsigned int>> &tags,
             std::vector<unsigned int> labels_map, std::vector<node_sai> int_s) {
 
   std::vector<std::vector<node_sai>> res(4);
-#pragma omp parallel
-#pragma omp for
+  // #pragma omp parallel
+  // #pragma omp for
+#pragma omp parallel for
   for (uint8_t i = 0; i < 4; i++) {
     uint8_t s = i + 1;
 
@@ -209,8 +210,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
 
   std::vector<std::vector<std::vector<node_sai>>> intervals_fast(cache);
 
-#pragma omp parallel
-#pragma omp for
+  // #pragma omp parallel
+  // #pragma omp for
+#pragma omp parallel for
   for (int c = 1; c < 5; ++c) {
     fm6_set_intv(index, c, sai);
 
@@ -222,7 +224,6 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   }
   std::cerr << "Preparing cache, this will take time\n";
   for (int i = cache - 2; i >= 0; i--) {
-
     for (int j = 0; j < intervals_fast[i + 1].size(); j++) {
 
       auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
@@ -232,6 +233,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       }
     }
     std::cerr << intervals_fast[i].size() << "\n";
+    intervals_fast[i + 1].clear();
   }
   std::vector<std::vector<std::vector<unsigned int>>> intervals_f(
       (int)std::pow(4, cache));
