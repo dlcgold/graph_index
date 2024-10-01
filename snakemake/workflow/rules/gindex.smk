@@ -48,6 +48,7 @@ rule gindexQuery:
     input:
         exe_i=os.path.join(gindex_folder, "gindexquery"),
         f=os.path.join(input_folder, "q_{q}", "reads.fa"),
+        b=os.path.join(gindex_folderr, "index", "graph.bwt"),
     params:
         p=os.path.join(gindex_folderr, "index", "graph"),
     output:
@@ -63,6 +64,7 @@ rule gindexFastQuery:
     input:
         exe_i=os.path.join(gindex_fast_folder, "gindexquery"),
         f=os.path.join(input_folder, "q_{q}", "reads.fa"),
+        b=os.path.join(gindex_fast_folderr, "index", "graph.bwt"),
     params:
         p=os.path.join(gindex_fast_folderr, "index", "graph"),
     output:
@@ -78,6 +80,7 @@ rule gindexCacheQuery:
     input:
         exe_i=os.path.join(gindex_cache_folder, "gindex"),
         f=os.path.join(input_folder, "q_{q}", "reads.fa"),
+        b=os.path.join(gindex_cache_folderr, "index", "graph.bwt"),
     params:
         p=os.path.join(gindex_cache_folderr, "index", "graph"),
     output:
