@@ -4,7 +4,7 @@ folder :
   input : "input"
   output : "output"
 params :
-  gfa : "graph32.gfa"
+  gfa : "example/graph32.gfa"
   n_queries : "1000"
   max_length_queries : "10000"
   min_length_queries : "100"

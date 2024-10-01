@@ -17,7 +17,7 @@ rule graphppIndex:
     conda:
         "../envs/vg.yml"
     log:
-        time=os.path.join(bench_folder, "graphpp", "index.time"),
+        time=os.path.join(bench_folder, "graphpp", "index", "index.time"),
     shell:
         """
          /usr/bin/time --verbose -o {log.time} vg index -g {output} -t {threads} {input}
@@ -33,7 +33,7 @@ rule graphppQuery:
     conda:
         "../envs/vg.yml"
     log:
-        time=os.path.join(bench_folder, "graphpp", "query_{q}.time"),
+        time=os.path.join(bench_folder, "graphpp", "query", "{q}.time"),
     shell:
         """
          /usr/bin/time --verbose -o {log.time} {input.exe_i} {input.g} {input.f} > {output}

@@ -63,7 +63,7 @@ include: "rules/common.smk"
 include: "rules/gindex.smk"
 include: "rules/graphpp.smk"
 # include: "rules/vg.smk"
-#include: "rules/results.smk"
+include: "rules/results.smk"
 
 ##### target rules #####
 rule all:
@@ -85,22 +85,24 @@ rule all:
         # os.path.join(gindex_folderr, "index", "graph.bwt"),
         # os.path.join(gindex_fast_folderr, "index", "graph.bwt"),
         # os.path.join(gindex_cache_folderr, "index", "graph.bwt"),
-        expand(
-            os.path.join(graphpp_folderr, "query", "query_{q}.m"),
-            q = QUERIES,
-        ),
-        expand(
-            os.path.join(gindex_folderr, "query", "query_{q}.m"),
-            q = QUERIES,
-        ),
-        expand(
-            os.path.join(gindex_fast_folderr, "query", "query_{q}.m"),
-            q = QUERIES,
-        ),
-        expand(
-            os.path.join(gindex_cache_folderr, "query", "query_{q}.m"),
-            q = QUERIES,
-        ),
+        # expand(
+        #     os.path.join(graphpp_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_fast_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_cache_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        os.path.join(results_folder, "results", "index.csv"),
+        os.path.join(results_folder, "results", "query.csv"),
         # expand(os.path.join(output_folder, "graph", "query",
         #                     "{gfa_n}.query_{q}.m"),gfa_n=gfa_n,q=QUERIES),
         # expand(os.path.join(output_folder, "graphaligner", "query",
