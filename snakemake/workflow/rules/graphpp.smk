@@ -14,13 +14,15 @@ rule graphppIndex:
         os.path.join(graphpp_folderr, "index", "graph.vg")
     output:
         os.path.join(graphpp_folderr, "index", "graph.gcsa"),
+    params:
+        t=threads
     conda:
         "../envs/vg.yml"
     log:
         time=os.path.join(bench_folder, "graphpp", "index", "index.time"),
     shell:
         """
-         /usr/bin/time --verbose -o {log.time} vg index -g {output} -t {threads} {input}
+         /usr/bin/time --verbose -o {log.time} vg index -g {output} -t {params.t} {input}
         """
 
 rule graphppQuery:

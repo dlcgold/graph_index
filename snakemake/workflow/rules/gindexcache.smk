@@ -4,13 +4,14 @@ rule gindexCacheIndex:
         exe_i=os.path.join(gindex_cache_folder, "gindex"),
     params:
         p=os.path.join(gindex_cache_folderr, "index", "graph"),
+        t=threads
     output:
         b=os.path.join(gindex_cache_folderr, "index", "graph.bwt"),
     log:
         time=os.path.join(bench_folder, "gindex_cache", "index", "index.time"),
     shell:
         """
-         /usr/bin/time --verbose -o {log.time} {input.exe_i} index -i {input.g} -o {params.p} -t {threads} -c {cache_l}
+         /usr/bin/time --verbose -o {log.time} {input.exe_i} index -i {input.g} -o {params.p} -t {params.t} -c {cache_l}
         """
 
 rule gindexCacheQuery:
