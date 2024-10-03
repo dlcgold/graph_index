@@ -32,7 +32,7 @@ std::vector<node_sai> ext_alph(const rld_t *index, const uint8_t symb,
                                std::vector<node_sai> int_s) {
 
   std::vector<node_sai> int_next;
-
+#pragma omp parallel for
   for (auto ic : int_s) {
     rldintv_t osai[6];
     rld_extend(index, &ic.sai, osai, 1);
@@ -61,7 +61,7 @@ ext_by_alph(const rld_t *index, std::vector<std::vector<unsigned int>> &tags,
   std::vector<std::vector<node_sai>> res(4);
   // #pragma omp parallel
   // #pragma omp for
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
   for (uint8_t i = 0; i < 4; i++) {
     uint8_t s = i + 1;
 
@@ -212,7 +212,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
 
   // #pragma omp parallel
   // #pragma omp for
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
   for (int c = 1; c < 5; ++c) {
     fm6_set_intv(index, c, sai);
 
