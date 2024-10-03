@@ -228,12 +228,12 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
 
       auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
                            intervals_fast[i + 1][j]);
+      intervals_fast[i + 1].clear();
       for (auto ee : e) {
         intervals_fast[i].push_back(ee);
       }
     }
     std::cerr << intervals_fast[i].size() << "\n";
-    intervals_fast[i + 1].clear();
   }
   std::vector<std::vector<std::vector<unsigned int>>> intervals_f(
       (int)std::pow(4, cache));
