@@ -32,7 +32,6 @@ std::vector<node_sai> ext_alph(const rld_t *index, const uint8_t symb,
                                std::vector<node_sai> int_s) {
 
   std::vector<node_sai> int_next;
-#pragma omp parallel for
   for (auto ic : int_s) {
     rldintv_t osai[6];
     rld_extend(index, &ic.sai, osai, 1);
