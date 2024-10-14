@@ -163,6 +163,10 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     ++insn;
     if (insn == INT_MAX) { // FIXME: hardcoded
       // NOTE: insert works only if string is "long enough" (at least ~13)
+      std::fprintf(stderr, "stringbuffer: ");
+      for (unsigned int i = 0; i < buf.l; i++) {
+        std::fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
+      }
       rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
       buf.l = 0;
       insn = 0;
@@ -234,13 +238,13 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     }
     std::cerr << intervals_fast[i].size() << "\n";
   }
-  std::vector<std::vector<std::vector<unsigned int>>> intervals_f(
+  std::vector<std::vector<std::vector<uint64_t>>> intervals_f(
       (int)std::pow(4, cache));
   int k = 0;
   for (auto s : intervals_fast[0]) {
-    std::vector<std::vector<unsigned int>> tmp_v;
+    std::vector<std::vector<uint64_t>> tmp_v;
     for (auto i : s) {
-      std::vector<unsigned int> t = {i.sai.x[0], i.sai.x[2], i.curr_node};
+      std::vector<uint64_t> t = {i.sai.x[0], i.sai.x[2], i.curr_node};
       tmp_v.push_back(t);
     }
 

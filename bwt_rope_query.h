@@ -173,7 +173,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
         for (unsigned int k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
           uint8_t symb = get_bwt_symb(index, k);
           if (symb == 0) {
-            auto end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+            unsigned int end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
             if (end_node == tags[0].size() - 1) {
               std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[0]);
             } else {
@@ -181,7 +181,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
                            labels_map[end_node + 1]);
             }
           } else {
-            auto node_f = findnode(index, k, tags[0].size(), tags);
+            unsigned int node_f = findnode(index, k, tags[0].size(), tags);
             // std::fprintf(stderr, "Match at node: %ld\n", node_f);
             std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[node_f]);
           }
@@ -208,7 +208,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
   std::vector<unsigned int> labels_map = uintvec_load(l_file.c_str());
 
-  std::vector<std::vector<std::vector<unsigned int>>> c_int =
+  std::vector<std::vector<std::vector<uint64_t>>> c_int =
       uintmat3_load(c_file.c_str());
 
   std::vector<std::vector<node_sai>> cache(c_int.size());

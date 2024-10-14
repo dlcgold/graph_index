@@ -6,6 +6,7 @@
 #include "rlcsa.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -99,7 +100,7 @@ get_end_nodes(const rld_t *index, unsigned int b_i, unsigned int l_i,
   auto d_b = rld_rank11(index, b_i, 0);
   auto d_e = rld_rank11(index, b_i + l_i, 0);
   for (unsigned int j = d_b; j < d_e; j++) {
-    auto end_node = 0;
+    unsigned int end_node = 0;
     if (tags[0][j] != tags[0].size() - 1)
       end_node = tags[0][j] + 1;
     nodes.push_back(end_node);
@@ -129,7 +130,7 @@ get_adj_nodes_f(const rld_t *index, unsigned int end_node,
 }
 
 std::vector<node_sai>
-get_intervals(const rld_t *index, unsigned int b_i, unsigned int l_i,
+get_intervals(const rld_t *index, uint64_t b_i, uint64_t l_i,
               std::vector<std::vector<unsigned int>> &tags,
               std::vector<std::vector<unsigned int>> &adj, uint8_t symb,
               std::vector<unsigned int> p, unsigned int e_n = INT_MAX) {

@@ -7,6 +7,7 @@
 
 // #include "common.h"
 #include <arpa/inet.h>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <stdint.h>
@@ -124,8 +125,31 @@ std::vector<std::vector<unsigned int>> uintmat_load(const char *file) {
   return mat;
 }
 
-void uintmat3_dump(std::vector<std::vector<std::vector<unsigned int>>> mat,
+void uintmat3_dump(std::vector<std::vector<std::vector<uint64_t>>> mat,
                    const char *file) {
+  std::ofstream ofs;
+  ofs.open(file, std::ios::out | std::ios::binary);
+  uint32_t sz = htonl(mat.size());
+  ofs.write((const char *)&sz, sizeof(uint32_t));
+  for (auto vec2 : mat) {
+    uint32_t szv2 = htonl(vec2.size());
+    ofs.write((const char *)&szv2, sizeof(uint32_t));
+    for (auto &vec : vec2) {
+      uint32_t szv = htonl(vec.size());
+      ofs.write((const char *)&szv, sizeof(uint32_t));
+      for (uint32_t i = 0, end_i = vec.size(); i < end_i; ++i) {
+        uint64_t val = htonl(vec[i]);
+        // std::cout << vec[i] << " ";
+        ofs.write((const char *)&val, sizeof(uint64_t));
+      }
+    }
+  }
+
+  ofs.close();
+}
+
+void uintmat3ui_dump(std::vector<std::vector<std::vector<unsigned int>>> mat,
+                     const char *file) {
   std::ofstream ofs;
   ofs.open(file, std::ios::out | std::ios::binary);
   uint32_t sz = htonl(mat.size());
@@ -147,8 +171,42 @@ void uintmat3_dump(std::vector<std::vector<std::vector<unsigned int>>> mat,
   ofs.close();
 }
 
-std::vector<std::vector<std::vector<unsigned int>>>
+std::vector<std::vector<std::vector<uint64_t>>>
 uintmat3_load(const char *file) {
+  std::ifstream ifs;
+  ifs.open(file, std::ios::in | std::ios::binary);
+
+  uint32_t sz = 0;
+  ifs.read((char *)&sz, sizeof(uint32_t));
+  sz = ntohl(sz);
+  std::vector<std::vector<std::vector<uint64_t>>> mat(sz);
+  for (uint32_t i = 0; i < sz; ++i) {
+
+    uint32_t szv2 = 0;
+    ifs.read((char *)&szv2, sizeof(uint32_t));
+    szv2 = ntohl(szv2);
+    std::vector<std::vector<uint64_t>> vec2(szv2);
+    for (uint32_t k = 0; k < szv2; ++k) {
+      uint32_t szv = 0;
+      ifs.read((char *)&szv, sizeof(uint32_t));
+      szv = ntohl(szv);
+      std::vector<uint64_t> vec(szv);
+      for (uint32_t j = 0; j < szv; ++j) {
+        uint64_t val = 0;
+        ifs.read((char *)&val, sizeof(uint64_t));
+        val = ntohl(val);
+
+        vec[j] = val;
+      }
+      vec2[k] = vec;
+    }
+    mat[i] = vec2;
+  }
+  return mat;
+}
+
+std::vector<std::vector<std::vector<unsigned int>>>
+uintmat3ui_load(const char *file) {
   std::ifstream ifs;
   ifs.open(file, std::ios::in | std::ios::binary);
 
@@ -180,7 +238,6 @@ uintmat3_load(const char *file) {
   }
   return mat;
 }
-
 /* static inline uint kputsn(const char *p, uint64_t l, kstring_t *s) { */
 /*   if (s->l + l + 1 >= s->m) { */
 /*     char *tmp; */
