@@ -12,6 +12,7 @@
 #include "utils.h"
 #include <algorithm>
 #include <climits>
+#include <cstdint>
 #include <cstdio>
 #include <future>
 #include <iostream>
