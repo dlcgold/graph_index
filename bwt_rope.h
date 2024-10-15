@@ -26,9 +26,9 @@
 #include <cstdint>
 
 std::vector<node_sai> ext_alph(const rld_t *index, const uint8_t symb,
-                               std::vector<std::vector<unsigned int>> &tags,
-                               std::vector<std::vector<unsigned int>> &adj,
-                               std::vector<unsigned int> labels_map,
+                               std::vector<std::vector<uint64_t>> &tags,
+                               std::vector<std::vector<uint64_t>> &adj,
+                               std::vector<uint64_t> labels_map,
                                std::vector<node_sai> int_s) {
 
   std::vector<node_sai> int_next;
@@ -53,9 +53,9 @@ std::vector<node_sai> ext_alph(const rld_t *index, const uint8_t symb,
 }
 
 std::vector<std::vector<node_sai>>
-ext_by_alph(const rld_t *index, std::vector<std::vector<unsigned int>> &tags,
-            std::vector<std::vector<unsigned int>> &adj,
-            std::vector<unsigned int> labels_map, std::vector<node_sai> int_s) {
+ext_by_alph(const rld_t *index, std::vector<std::vector<uint64_t>> &tags,
+            std::vector<std::vector<uint64_t>> &adj,
+            std::vector<uint64_t> labels_map, std::vector<node_sai> int_s) {
 
   std::vector<std::vector<node_sai>> res(4);
   // #pragma omp parallel
@@ -91,7 +91,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   std::string int_out = out_prefix + ".cache";
   gfa_t *ingfa;
   ingfa = gfa_read(gfa_file);
-  std::vector<std::pair<std::string, unsigned int>> labels;
+  std::vector<std::pair<std::string, uint64_t>> labels;
 
   double t_start = realtime();
   rlcsa_t *rlc = rlc_init();
@@ -99,12 +99,12 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   uint8_t *s;
   kstring_t buf = {0, 0, 0};
   fflush(stderr);
-  std::vector<std::vector<unsigned int>> adj(ingfa->n_seg);
-  std::vector<unsigned int> labels_map(ingfa->n_seg);
+  std::vector<std::vector<uint64_t>> adj(ingfa->n_seg);
+  std::vector<uint64_t> labels_map(ingfa->n_seg);
   int insn = 0;
   // std::cout << "nodes: " << ingfa->n_seg << "\n";
-  for (unsigned int i = 0; i < ingfa->n_seg; ++i) {
-    auto l = ingfa->seg[i].len;
+  for (uint64_t i = 0; i < ingfa->n_seg; ++i) {
+    // auto l = ingfa->seg[i].len;
     std::string seq_t = ingfa->seg[i].seq;
     labels.push_back(std::make_pair(seq_t, i));
     char *segname = ingfa->seg[i].name;
@@ -113,18 +113,18 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     ++vid;
     gfa_arc_t *inca_vid = gfa_arc_a(ingfa, vid);
     uint32_t n_inca_vid = gfa_arc_n(ingfa, vid);
-    for (unsigned int j = 0; j < n_inca_vid; ++j) {
+    for (uint64_t j = 0; j < n_inca_vid; ++j) {
       adj[i].push_back(gfa_name2id(ingfa, ingfa->seg[inca_vid[j].w >> 1].name));
     }
     labels_map[i] = std::stoi(segname);
   }
 
-  std::vector<std::vector<unsigned int>> adj_f(ingfa->n_seg);
-  std::vector<unsigned int> labels_map_f(ingfa->n_seg);
+  std::vector<std::vector<uint64_t>> adj_f(ingfa->n_seg);
+  std::vector<uint64_t> labels_map_f(ingfa->n_seg);
 
   std::stable_sort(labels.begin(), labels.end(),
-                   [](const std::pair<std::string, unsigned int> &a,
-                      const std::pair<std::string, unsigned int> &b) {
+                   [](const std::pair<std::string, uint64_t> &a,
+                      const std::pair<std::string, uint64_t> &b) {
                      auto aa(a.first);
                      for (auto &x : aa)
                        x = (x != 'N' ? x : 'Z');
@@ -134,19 +134,19 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
                      return aa < bb;
                    });
 
-  auto map_l = std::vector<unsigned int>(labels.size());
+  auto map_l = std::vector<uint64_t>(labels.size());
   auto j = 0;
   for (auto l : labels) {
     map_l[l.second] = j;
     j++;
   }
-  for (unsigned int i = 0; i < adj.size(); i++) {
-    for (unsigned int j = 0; j < adj[i].size(); j++) {
+  for (uint64_t i = 0; i < adj.size(); i++) {
+    for (uint64_t j = 0; j < adj[i].size(); j++) {
       adj_f[map_l[i]].push_back(map_l[adj[i][j]]);
     }
   }
 
-  for (unsigned int i = 0; i < labels_map.size(); i++) {
+  for (uint64_t i = 0; i < labels_map.size(); i++) {
     labels_map_f[map_l[i]] = labels_map[i];
   }
 
@@ -156,7 +156,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     s = (uint8_t *)seq;
 
     //  change encoding
-    for (int j = 0; j < l; ++j)
+    for (uint64_t j = 0; j < l; ++j)
       s[j] = fm6_i(s[j]);
 
     kputsn((char *)s, l + 1, &buf);
@@ -164,9 +164,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     if (insn == INT_MAX) { // FIXME: hardcoded
       // NOTE: insert works only if string is "long enough" (at least ~13)
       std::fprintf(stderr, "stringbuffer: ");
-      for (unsigned int i = 0; i < buf.l; i++) {
-        std::fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
-      }
+      // for (uint64_t i = 0; i < buf.l; i++) {
+      //   std::fprintf(stderr, "%c", "$ACGTN"[buf.s[i]]);
+      // }
       rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
       buf.l = 0;
       insn = 0;
@@ -176,13 +176,13 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   if (insn) {
     rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
   }
-  int dol = 0;
+  // int dol = 0;
 
   uintmat_dump(adj_f, graph_out.c_str());
   uintvec_dump(labels_map_f, labels_out.c_str());
   rlc_dump(rlc, rope_out.c_str());
 
-  std::vector<std::vector<unsigned int>> tags(2);
+  std::vector<std::vector<uint64_t>> tags(2);
   tags[0].resize(ingfa->n_seg);
   tags[1].resize(ingfa->n_seg);
 
@@ -191,7 +191,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
                __func__, realtime() - t_start, cputime());
   rlc_destroy(rlc);
 
-  for (int off = 0; off < labels.size(); off++) {
+  for (uint64_t off = 0; off < labels.size(); off++) {
     if (off == 0) {
       tags[0][off] = ingfa->n_seg - 1;
       tags[1][off] = off;
@@ -215,7 +215,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
 
   // #pragma omp parallel
   // #pragma omp for
-#pragma omp parallel for num_threads(4)
+//#pragma omp parallel for num_threads(4)
   for (int c = 1; c < 5; ++c) {
     fm6_set_intv(index, c, sai);
 
@@ -227,11 +227,11 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   }
   std::cerr << "Preparing cache, this will take time\n";
   for (int i = cache - 2; i >= 0; i--) {
-    for (int j = 0; j < intervals_fast[i + 1].size(); j++) {
+    for (uint64_t j = 0; j < intervals_fast[i + 1].size(); j++) {
 
       auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
                            intervals_fast[i + 1][j]);
-      //intervals_fast[i + 1].clear();
+      // intervals_fast[i + 1].clear();
       for (auto ee : e) {
         intervals_fast[i].push_back(ee);
       }
@@ -247,6 +247,8 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     for (auto i : s) {
       std::vector<uint64_t> t = {i.sai.x[0], i.sai.x[2], i.curr_node};
       tmp_v.push_back(t);
+      
+      //printf("%ld \t %ld \t %ld\n", i.sai.x[0], i.sai.x[2], i.curr_node);
     }
 
     intervals_f[k] = tmp_v;

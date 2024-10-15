@@ -22,10 +22,9 @@ int log4(int x) { return log(x) / log(4); }
 
 struct node_sai {
   rldintv_t sai;
-  unsigned int curr_node;
-  std::vector<unsigned int> path;
-
-  unsigned int end() const { return sai.x[0] + sai.x[2]; }
+  uint64_t curr_node;
+  std::vector<uint64_t> path;
+  uint64_t end() const { return sai.x[0] + sai.x[2]; }
   bool operator<(const node_sai &other) const {
     return sai.x[0] < other.sai.x[0];
   }
@@ -51,7 +50,7 @@ std::vector<node_sai> merge(std::vector<node_sai> intervals) {
   }
   return merged;
 }
-uint8_t get_bwt_symb(const rld_t *index, unsigned int pos) {
+uint8_t get_bwt_symb(const rld_t *index, uint64_t pos) {
   rldintv_t sai;
   uint8_t symb = 5;
   sai.x[0] = pos;
@@ -68,8 +67,8 @@ uint8_t get_bwt_symb(const rld_t *index, unsigned int pos) {
   return symb;
 }
 
-unsigned int findnode(const rld_t *index, unsigned int pos, unsigned end,
-                      std::vector<std::vector<unsigned int>> &tags) {
+uint64_t findnode(const rld_t *index, uint64_t pos, unsigned end,
+                  std::vector<std::vector<uint64_t>> &tags) {
   // std::fprintf(stderr, "pos %d", pos);
   uint8_t symb = get_bwt_symb(index, pos);
   rldintv_t sai;
@@ -92,15 +91,15 @@ unsigned int findnode(const rld_t *index, unsigned int pos, unsigned end,
   }
 }
 
-std::vector<unsigned int>
-get_end_nodes(const rld_t *index, unsigned int b_i, unsigned int l_i,
-              std::vector<std::vector<unsigned int>> &tags,
-              std::vector<std::vector<unsigned int>> &adj) {
-  std::vector<unsigned int> nodes;
+std::vector<uint64_t> get_end_nodes(const rld_t *index, uint64_t b_i,
+                                    uint64_t l_i,
+                                    std::vector<std::vector<uint64_t>> &tags,
+                                    std::vector<std::vector<uint64_t>> &adj) {
+  std::vector<uint64_t> nodes;
   auto d_b = rld_rank11(index, b_i, 0);
   auto d_e = rld_rank11(index, b_i + l_i, 0);
-  for (unsigned int j = d_b; j < d_e; j++) {
-    unsigned int end_node = 0;
+  for (uint64_t j = d_b; j < d_e; j++) {
+    uint64_t end_node = 0;
     if (tags[0][j] != tags[0].size() - 1)
       end_node = tags[0][j] + 1;
     nodes.push_back(end_node);
@@ -108,17 +107,17 @@ get_end_nodes(const rld_t *index, unsigned int b_i, unsigned int l_i,
   return nodes;
 }
 
-std::vector<std::pair<unsigned int, unsigned int>>
-get_adj_nodes_f(const rld_t *index, unsigned int end_node,
-                std::vector<std::vector<unsigned int>> &tags,
-                std::vector<std::vector<unsigned int>> &adj) {
-  std::vector<std::pair<unsigned int, unsigned int>> nodes;
+std::vector<std::pair<uint64_t, uint64_t>>
+get_adj_nodes_f(const rld_t *index, uint64_t end_node,
+                std::vector<std::vector<uint64_t>> &tags,
+                std::vector<std::vector<uint64_t>> &adj) {
+  std::vector<std::pair<uint64_t, uint64_t>> nodes;
   if (verbose) {
-    std::fprintf(stderr, "adding siblings of %d: ", end_node);
+    std::fprintf(stderr, "adding siblings of %ld: ", end_node);
   }
-  for (unsigned int k = 0; k < adj[end_node].size(); k++) {
+  for (uint64_t k = 0; k < adj[end_node].size(); k++) {
     if (verbose) {
-      std::fprintf(stderr, " sibling of %d: %d\n", end_node, adj[end_node][k]);
+      std::fprintf(stderr, " sibling of %ld: %ld\n", end_node, adj[end_node][k]);
     }
     nodes.push_back(
         std::make_pair(tags[1][adj[end_node][k]], adj[end_node][k]));
@@ -129,11 +128,12 @@ get_adj_nodes_f(const rld_t *index, unsigned int end_node,
   return nodes;
 }
 
-std::vector<node_sai>
-get_intervals(const rld_t *index, uint64_t b_i, uint64_t l_i,
-              std::vector<std::vector<unsigned int>> &tags,
-              std::vector<std::vector<unsigned int>> &adj, uint8_t symb,
-              std::vector<unsigned int> p, unsigned int e_n = INT_MAX) {
+std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
+                                    uint64_t l_i,
+                                    std::vector<std::vector<uint64_t>> &tags,
+                                    std::vector<std::vector<uint64_t>> &adj,
+                                    uint8_t symb, std::vector<uint64_t> p,
+                                    uint64_t e_n = INT_MAX) {
   std::vector<node_sai> intervals;
   // if (e_n == INT_MAX) {
   auto end_nodes = get_end_nodes(index, b_i, l_i, tags, adj);
@@ -159,18 +159,18 @@ get_intervals(const rld_t *index, uint64_t b_i, uint64_t l_i,
         fprintf(stderr, "comparing %d vs %d\n", get_bwt_symb(index, an.first),
                 symb);
       }
-      /* std::vector<unsigned int> nn = {n}; */
+      /* std::vector<uint64_t> nn = {n}; */
       /* intervals.push_back({sai_t, an.second, nn}); */
       if (symb != 6) {
         if (get_bwt_symb(index, an.first) == symb) {
-          //  std::vector<unsigned int> nn = {n, an.second};
-          std::vector<unsigned int> nn = {n};
+          //  std::vector<uint64_t> nn = {n, an.second};
+          std::vector<uint64_t> nn = {n};
           intervals.push_back({sai_t, an.second, nn});
           // std::fprintf(stderr, "size %ld \n",
           //         intervals[intervals.size() - 1].path[0]);
         }
       } else {
-        std::vector<unsigned int> nn = {n};
+        std::vector<uint64_t> nn = {n};
         intervals.push_back({sai_t, an.second, nn});
       }
     }
@@ -180,16 +180,16 @@ get_intervals(const rld_t *index, uint64_t b_i, uint64_t l_i,
 }
 
 std::vector<node_sai> ext_int(const rld_t *index, const uint8_t *s, int i,
-                              unsigned int l, rldintv_t &sai,
-                              std::vector<std::vector<unsigned int>> &tags,
-                              std::vector<std::vector<unsigned int>> &adj,
-                              std::vector<unsigned int> labels_map,
-                              unsigned int curr_node) {
+                              uint64_t l, rldintv_t &sai,
+                              std::vector<std::vector<uint64_t>> &tags,
+                              std::vector<std::vector<uint64_t>> &adj,
+                              std::vector<uint64_t> labels_map,
+                              uint64_t curr_node) {
 
-  unsigned int tollerance = 0;
+  // uint64_t tollerance = 0;
 
   uint8_t symb = i > 0 ? s[i] : 5;
-  // std::vector<unsigned int> match_nodes;
+  // std::vector<uint64_t> match_nodes;
   std::vector<node_sai> int_curr =
       get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
 
@@ -202,7 +202,7 @@ std::vector<node_sai> ext_int(const rld_t *index, const uint8_t *s, int i,
     }
   }
   std::vector<node_sai> int_next;
-  bool start = true;
+  // bool start = true;
   int db = 0;
   for (; i >= 0; --i) {
     db++;

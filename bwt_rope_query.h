@@ -30,16 +30,16 @@ KSEQ_INIT(gzFile, gzread)
 unsigned long long int interval_size = 0;
 unsigned long long int interval_size_avg = 1;
 
-std::vector<std::vector<unsigned int>> interval_spectrum;
+std::vector<std::vector<uint64_t>> interval_spectrum;
 
-void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
-         rldintv_t &sai, std::vector<std::vector<unsigned int>> &tags,
-         std::vector<std::vector<unsigned int>> &adj,
-         std::vector<unsigned int> labels_map, unsigned int curr_node,
-         char *read_name, unsigned int r_c, std::vector<node_sai> int_s) {
+void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
+         rldintv_t &sai, std::vector<std::vector<uint64_t>> &tags,
+         std::vector<std::vector<uint64_t>> &adj,
+         std::vector<uint64_t> labels_map, uint64_t curr_node, char *read_name,
+         uint64_t r_c, std::vector<node_sai> int_s) {
 
   interval_spectrum.push_back({});
-  unsigned int tollerance = 0;
+  // uint64_t tollerance = 0;
 
   uint8_t symb = i > 0 ? s[i] : 5;
   i--;
@@ -60,7 +60,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
     }
   }
   std::vector<node_sai> int_next;
-  bool start = true;
+  // bool start = true;
   int db = 0;
   for (; i >= 0; --i) {
     db++;
@@ -81,6 +81,9 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       //   osai[c].x[1] = ic.x[1];
       // }
       auto sai = osai[s[i]];
+
+      //std::fprintf(stderr, "at %ld with %ld extended into [%ld, %ld, %ld]\n", i, s[i], sai.x[0],
+      //               sai.x[1], sai.x[2]);
       if (verbose) {
         std::fprintf(stderr, "extended into [%ld, %ld, %ld]\n", sai.x[0],
                      sai.x[1], sai.x[2]);
@@ -123,11 +126,16 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       }
     }
     // int_curr = int_next;
+    //printf("before merge: %ld\n", int_next.size());
+    
     int_curr = merge(int_next);
+
+    //printf("after merge: %ld\n", int_curr.size());
     // interval_size += int_curr.size();
     interval_spectrum[r_c].push_back(int_curr.size());
 
     if (int_curr.size() == 0) {
+     //printf("!here");
       return;
     }
     int_next.clear();
@@ -140,11 +148,16 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
       }
     }
   }
+  //printf("heer");
   for (auto ic : int_curr) {
+       //std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
+       //ic.sai.x[1],
+       //        ic.sai.x[2]);
     if (ic.sai.x[2] >= 1) {
-      // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
-      // ic.sai.x[1],
-      //         ic.sai.x[2]);
+
+       //std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
+       //ic.sai.x[1],
+       //        ic.sai.x[2]);
 
       if (ic.curr_node != tags[0].size()) {
         if (ic.path.size() > 1) {
@@ -167,24 +180,24 @@ void ext(const rld_t *index, const uint8_t *s, int i, unsigned int l,
           //  std::fprintf(stderr, "\n");
         } else {
           // std::fprintf(stderr, "Match at node: %ld\n", ic.curr_node);
-          std::fprintf(stdout, "@%s\t%d\n", read_name,
+          std::fprintf(stdout, "@%s\t%ld\n", read_name,
                        labels_map[ic.curr_node]);
         }
       } else {
-        for (unsigned int k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
+        for (uint64_t k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
           uint8_t symb = get_bwt_symb(index, k);
           if (symb == 0) {
-            unsigned int end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+            uint64_t end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
             if (end_node == tags[0].size() - 1) {
-              std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[0]);
+              std::fprintf(stdout, "@%s\t%ld\n", read_name, labels_map[0]);
             } else {
-              std::fprintf(stdout, "@%s\t%d\n", read_name,
+              std::fprintf(stdout, "@%s\t%ld\n", read_name,
                            labels_map[end_node + 1]);
             }
           } else {
-            unsigned int node_f = findnode(index, k, tags[0].size(), tags);
+            uint64_t node_f = findnode(index, k, tags[0].size(), tags);
             // std::fprintf(stderr, "Match at node: %ld\n", node_f);
-            std::fprintf(stdout, "@%s\t%d\n", read_name, labels_map[node_f]);
+            std::fprintf(stdout, "@%s\t%ld\n", read_name, labels_map[node_f]);
           }
         }
       }
@@ -204,10 +217,10 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   rld_t *index = rld_restore(i_file.c_str());
 
-  std::vector<std::vector<unsigned int>> tags = uintmat_load(t_file.c_str());
+  std::vector<std::vector<uint64_t>> tags = uintmat_load(t_file.c_str());
 
-  std::vector<std::vector<unsigned int>> adj = uintmat_load(g_file.c_str());
-  std::vector<unsigned int> labels_map = uintvec_load(l_file.c_str());
+  std::vector<std::vector<uint64_t>> adj = uintmat_load(g_file.c_str());
+  std::vector<uint64_t> labels_map = uintvec_load(l_file.c_str());
 
   std::vector<std::vector<std::vector<uint64_t>>> c_int =
       uintmat3_load(c_file.c_str());
@@ -215,15 +228,15 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   std::vector<std::vector<node_sai>> cache(c_int.size());
 
   std::vector<std::string> suff(cache.size());
-  std::map<std::string, unsigned int> suff_map;
+  std::map<std::string, uint64_t> suff_map;
 
-  unsigned int ls = log4(cache.size());
+  uint64_t ls = log4(cache.size());
   std::cerr << "seeds of size " << cache.size() << " " << ls << "\n";
-  for (int i = 0; i < cache.size(); ++i) {
+  for (uint64_t i = 0; i < cache.size(); ++i) {
     std::string suff_t(ls, ' ');
     int cur = i;
 
-    for (int j = 0; j < ls; j++) {
+    for (uint64_t j = 0; j < ls; j++) {
       suff_t[j] = "ACGT"[cur % 4];
       cur /= 4;
     }
@@ -236,7 +249,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   for (auto s : c_int) {
     std::vector<node_sai> tv;
     rldintv_t sai;
-    unsigned int curr_node;
+    // uint64_t curr_node;
     for (auto v : s) {
       sai.info = 0;
       sai.x[0] = v[0];
