@@ -53,9 +53,9 @@ def main(argv):
             n = start_node["ids"]
             m = node_map[n]
             i = i + 1
-            if len(s) >= l_reads:
+            if len(s) >= l_reads and 'N' not in s[:l_reads]:
                 print(f">{n}-{m}\n{s[:l_reads]}")
-            elif len(s) == l_reads:
+            elif len(s) == l_reads and 'N' not in s:
                 print(f">{n}-{m}\n{s}")
             else:
                 i = i - 1
@@ -98,9 +98,9 @@ def main(argv):
             ns = f"{list_nodes[0]}-{node_map[list_nodes[0]]}"
             ##print(len(s))
             i = i + 1
-            if len(s) == l_reads:
+            if len(s) == l_reads and 'N' not in s:
                 print(f">{ns}\n{s}")
-            elif len(s) >= l_reads:
+            elif len(s) >= l_reads and 'N' not in s[:l_reads]:
                 print(f">{ns}\n{s[:l_reads]}")
             else:
                 i = i - 1
