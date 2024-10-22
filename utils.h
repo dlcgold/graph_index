@@ -62,6 +62,8 @@ void uintvec_dump(std::vector<uint64_t> vec, const char *file) {
   ofs.close();
 }
 
+
+
 std::vector<uint64_t> uintvec_load(const char *file) {
 
   std::ifstream ifs;
@@ -98,6 +100,9 @@ void uintmat_dump(std::vector<std::vector<uint64_t>> mat, const char *file) {
 
   ofs.close();
 }
+
+
+
 
 std::vector<std::vector<uint64_t>> uintmat_load(const char *file) {
   std::ifstream ifs;
