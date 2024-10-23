@@ -103,6 +103,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   std::vector<uint64_t> labels_map(ingfa->n_seg + 1);
   int insn = 0;
   uint64_t ml = 0;
+  uint64_t al = 0;
   // std::cout << "nodes: " << ingfa->n_seg << "\n";
   std::cout << "Loading the graph \n";
   for (uint64_t i = 0; i < ingfa->n_seg; ++i) {
@@ -110,6 +111,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     std::string seq_t = ingfa->seg[i].seq;
     transform(seq_t.begin(), seq_t.end(), seq_t.begin(), ::toupper);
     labels.push_back(std::make_pair(seq_t, i));
+    if(seq_t < std::string("ACGTN")) {
+      al += seq_t.size() + 1;
+    }
     char *segname = ingfa->seg[i].name;
     int32_t segid = i;
     uint32_t vid = segid << 1;
@@ -123,6 +127,11 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     if (labels_map[i] > ml)
       ml = labels_map[i];
     // labels_map[i] = std::string(segname);
+  }
+  if(al + 60 > INT32_MAX) {
+    std::cerr << "Possible issues related to BWT index\n";
+  } else {
+  std::cerr << "Safe range of " << al << " bases\n";
   }
   std::vector<std::vector<uint64_t>> adj_f(ingfa->n_seg + 1);
   std::vector<uint64_t> labels_map_f(ingfa->n_seg + 1);
@@ -199,7 +208,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       s[j] = fm6_i(s[j]);
 
     //++insn;
-    if (buf.l + l > INT32_MAX ) { // FIXME: hardcoded
+    if (buf.l + l > INT32_MAX) { // FIXME: hardcoded
       // NOTE: insert works only if string is "long enough" (at least ~13)
       // std::fprintf(stderr, "stringbuffer: ");
       // for (uint64_t i = 0; i < buf.l; i++) {
