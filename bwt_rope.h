@@ -104,6 +104,8 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   int insn = 0;
   uint64_t ml = 0;
   uint64_t al = 0;
+  uint64_t ca = 0;
+  bool fc = true;
   // std::cout << "nodes: " << ingfa->n_seg << "\n";
   std::cout << "Loading the graph \n";
   for (uint64_t i = 0; i < ingfa->n_seg; ++i) {
@@ -111,8 +113,18 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     std::string seq_t = ingfa->seg[i].seq;
     transform(seq_t.begin(), seq_t.end(), seq_t.begin(), ::toupper);
     labels.push_back(std::make_pair(seq_t, i));
-    if(seq_t < std::string("ACGTN")) {
+    if (seq_t < std::string("ACGTN")) {
       al += seq_t.size() + 1;
+    }
+    if (fc && al > INT32_MAX) {
+      fc = false;
+      for (char ch : seq_t) {
+        if (ch == 'A') {
+          ca++;
+        } else {
+          break;
+        }
+      }
     }
     char *segname = ingfa->seg[i].name;
     int32_t segid = i;
@@ -128,15 +140,18 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       ml = labels_map[i];
     // labels_map[i] = std::string(segname);
   }
-  if(al + 60 > INT32_MAX) {
-    std::cerr << "Possible issues related to BWT index\n";
+
+  std::string dummy_s = "ACGTN";
+  if (al + 1 > INT32_MAX) {
+    std::cerr << "Possible issues related to BWT index. Trying fioxing with " << ca + 2 << " A\n";
+    dummy_s = std::string(ca + 2, 'A') + std::string("CGTN");
   } else {
-  std::cerr << "Safe range of " << al << " bases\n";
+    std::cerr << "Safe range of " << al << " bases\n";
   }
   std::vector<std::vector<uint64_t>> adj_f(ingfa->n_seg + 1);
   std::vector<uint64_t> labels_map_f(ingfa->n_seg + 1);
   std::cout << "Sorting the labels\n";
-  labels.insert(labels.begin(), {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACGTN", ingfa->n_seg});
+  labels.insert(labels.begin(), {dummy_s, ingfa->n_seg});
   labels_map[ingfa->n_seg] = ml + 1;
   std::stable_sort(labels.begin(), labels.end(),
                    [](const std::pair<std::string, uint64_t> &a,
@@ -197,7 +212,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   for (auto ll : labels) {
     auto seq = ll.first.c_str();
     auto l = ll.first.size();
-    //std::cout << seq << "\n";
+    // std::cout << seq << "\n";
     s = (uint8_t *)seq;
     if (seq[0] == '$') {
       start = false;
@@ -250,7 +265,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
 
   for (uint64_t off = 0; off < labels.size(); off++) {
     if (off == 0) {
-      //tags[0][off] = ingfa->n_seg - 1;
+      // tags[0][off] = ingfa->n_seg - 1;
       tags[0][off] = ingfa->n_seg;
       tags[1][off] = off;
     } else {
@@ -272,7 +287,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   //   printf("%c", "$ACGTN"[get_bwt_symb(index, i)]);
   // }
   std::vector<std::vector<std::vector<node_sai>>> intervals_fast(cache);
-  
+
   // #pragma omp parallel
   // #pragma omp for
   // #pragma omp parallel for num_threads(4)
