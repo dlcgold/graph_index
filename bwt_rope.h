@@ -89,6 +89,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   std::string graph_out = out_prefix + ".graph";
   std::string labels_out = out_prefix + ".labels";
   std::string int_out = out_prefix + ".cache";
+ 
   gfa_t *ingfa;
   ingfa = gfa_read(gfa_file);
   std::vector<std::pair<std::string, uint64_t>> labels;
@@ -107,7 +108,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   uint64_t ca = 0;
   bool fc = true;
   // std::cout << "nodes: " << ingfa->n_seg << "\n";
-  std::cout << "Loading the graph \n";
+  //std::cout << "Loading the graph \n";
   for (uint64_t i = 0; i < ingfa->n_seg; ++i) {
     // auto l = ingfa->seg[i].len;
     std::string seq_t = ingfa->seg[i].seq;
@@ -127,11 +128,11 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       }
     }
     char *segname = ingfa->seg[i].name;
-    int32_t segid = i;
-    uint32_t vid = segid << 1;
+    uint64_t segid = i;
+    uint64_t vid = segid << 1;
     ++vid;
     gfa_arc_t *inca_vid = gfa_arc_a(ingfa, vid);
-    uint32_t n_inca_vid = gfa_arc_n(ingfa, vid);
+    uint64_t n_inca_vid = gfa_arc_n(ingfa, vid);
     for (uint64_t j = 0; j < n_inca_vid; ++j) {
       adj[i].push_back(gfa_name2id(ingfa, ingfa->seg[inca_vid[j].w >> 1].name));
     }
@@ -140,17 +141,20 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       ml = labels_map[i];
     // labels_map[i] = std::string(segname);
   }
-
+  std::fprintf(stderr,
+               "[M::%s] graph loaded in %.3f sec\n",
+               __func__, realtime() - t_start);
+  t_start = realtime();
   std::string dummy_s = "ACGTN";
   if (al + 1 > INT32_MAX) {
-    std::cerr << "Possible issues related to BWT index. Trying fioxing with " << ca + 2 << " A\n";
+    std::cerr << "Possible issues related to BWT index. Trying fixing with " << ca + 2 << " A\n";
     dummy_s = std::string(ca + 2, 'A') + std::string("CGTN");
   } else {
     std::cerr << "Safe range of " << al << " bases\n";
   }
   std::vector<std::vector<uint64_t>> adj_f(ingfa->n_seg + 1);
   std::vector<uint64_t> labels_map_f(ingfa->n_seg + 1);
-  std::cout << "Sorting the labels\n";
+  //std::cout << "Sorting the labels\n";
   labels.insert(labels.begin(), {dummy_s, ingfa->n_seg});
   labels_map[ingfa->n_seg] = ml + 1;
   std::stable_sort(labels.begin(), labels.end(),
@@ -167,8 +171,11 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   // labels.push_back({"$ACGTN", ingfa->n_seg});
   // labels.insert(labels.begin(), {"$ACGTN", ingfa->n_seg});
   // labels_map[ingfa->n_seg] = ml + 1;
-
-  std::cout << "Build the index\n";
+  std::fprintf(stderr,
+               "[M::%s] labels sorted in %.3f sec\n",
+               __func__, realtime() - t_start);
+  t_start = realtime();
+  //std::cout << "Build the index\n";
   auto map_l = std::vector<uint64_t>(labels.size());
   auto j = 0;
   for (auto l : labels) {
@@ -242,6 +249,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     rlc_insert(rlc, (const uint8_t *)buf.s, (uint32_t)buf.l, 1);
     fprintf(stderr, "[M::%s] inserted %ld symbols\n", __func__, (long)buf.l);
   }
+
   // int dol = 0;
   // for (unsigned int i = 0; i < buf.l; i++) {
   //   printf("%c", "$ACGTN"[buf.s[i]]);
@@ -250,7 +258,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   uintmat_dump(adj_f, graph_out.c_str());
   uintvec_dump(labels_map_f, labels_out.c_str());
   // rlc_print_bwt(rlc);
-
+  
   rlc_dump(rlc, rope_out.c_str());
   int bwt_l = rlc->l;
 
@@ -258,9 +266,6 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   tags[0].resize(ingfa->n_seg + 1);
   tags[1].resize(ingfa->n_seg + 1);
 
-  std::fprintf(stderr,
-               "[M::%s] dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
-               __func__, realtime() - t_start, cputime());
   rlc_destroy(rlc);
 
   for (uint64_t off = 0; off < labels.size(); off++) {
@@ -278,6 +283,13 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   gfa_destroy(ingfa);
   free(buf.s);
 
+  std::fprintf(stderr,
+               "[M::%s] built and dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
+               __func__, realtime() - t_start, cputime());
+  //std::vector<std::vector<uint64_t>> tags = uintmat_load(tag_out.c_str());
+  // std::vector<std::vector<uint64_t>> adj_f = uintmat_load(graph_out.c_str());
+  // std::vector<uint64_t> labels_map_f = uintvec_load(labels_out.c_str());
+  t_start = realtime();
   rld_t *index = rld_restore(rope_out.c_str());
   rldintv_t sai;
   for (int c = 0; c < 6; ++c) {
@@ -300,20 +312,28 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     intervals_fast[cache - 1][c - 1].insert(
         intervals_fast[cache - 1][c - 1].end(), tmp_int.begin(), tmp_int.end());
   }
-  std::cerr << "\nPreparing cache, this will take time\n";
+  std::cerr << "\nPreparing cache of size " << cache << " using " << threads << " threads, this will take time\n";
   for (int i = cache - 2; i >= 0; i--) {
+    intervals_fast[i].resize(intervals_fast[i + 1].size() * 4);
+#pragma omp parallel for num_threads(threads)
     for (uint64_t j = 0; j < intervals_fast[i + 1].size(); j++) {
-
       auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
                            intervals_fast[i + 1][j]);
       // intervals_fast[i + 1].clear();
-      for (auto ee : e) {
-        intervals_fast[i].push_back(ee);
-      }
+      //for (auto ee : e) {
+      //  intervals_fast[i].push_back(ee);
+      // }
+      intervals_fast[i][j * 4] = e[0];
+      intervals_fast[i][j * 4 + 1] = e[1];
+      intervals_fast[i][j * 4 + 2] = e[2];
+      intervals_fast[i][j * 4 + 3] = e[3];
+
     }
     intervals_fast[i + 1].clear();
-    std::cerr << intervals_fast[i].size() << "\n";
+    // std::cerr << intervals_fast[i].size() << "\r";
+    fprintf(stderr, "[M::%s] computed cache of size %ld\n", __func__, intervals_fast[i].size());
   }
+
   std::vector<std::vector<std::vector<uint64_t>>> intervals_f(
       (int)std::pow(4, cache));
   int k = 0;
@@ -330,6 +350,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
     k++;
   }
   uintmat3_dump(intervals_f, int_out.c_str());
+  std::fprintf(stderr,
+               "[M::%s] cache computed and dumped in %.3f sec\n",
+               __func__, realtime() - t_start);
 }
 
 #endif // GRAPHINDEX_BWT_ROPE_H

@@ -53,7 +53,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
   }
   int_curr = merge(int_curr);
   if (verbose) {
-    std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
+   std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
     for (auto ic : int_curr) {
       std::fprintf(stderr, "[%ld, %ld, %ld]\n", ic.sai.x[0], ic.sai.x[1],
                    ic.sai.x[2]);
@@ -63,15 +63,17 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
   // bool start = true;
   int db = 0;
   for (; i >= 0; --i) {
+  // std::cerr << "-------------------------------\n" << std::endl;
     db++;
     if (verbose) {
       std::fprintf(stderr, "\n");
     }
     for (auto ic : int_curr) {
+    // if(ic.sai.x[0] > INT64_MAX - ic.sai.x[2] - 2) {
       if (verbose) {
         std::fprintf(stderr,
-                     "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
-                     ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i);
+                     "analyzing [%ld, %ld, %ld] with char %d at pos %d in node %ld\n",
+                     ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i, ic.curr_node);
         std::fprintf(stderr, "in %ld we have %d\n", ic.sai.x[0],
                      get_bwt_symb(index, ic.sai.x[0]));
       }
@@ -104,8 +106,8 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
           if (verbose) {
 
             for (auto ic2 : tmp_int) {
-              std::fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
-                           ic2.sai.x[1], ic2.sai.x[2]);
+              std::fprintf(stderr, "adding [%ld, %ld, %ld] noed %ld\n", ic2.sai.x[0],
+                           ic2.sai.x[1], ic2.sai.x[2], ic2.curr_node);
             }
           }
           int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
@@ -131,9 +133,12 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     int_curr = merge(int_next);
 
     //printf("after merge: %ld\n", int_curr.size());
+    //if(int_curr.size()==1){
+    //fprintf(stderr, "one %ld %ld %ld %ld", int_curr[0].sai.x[0], int_curr[0].sai.x[1], int_curr[0].sai.x[2], int_curr[0].curr_node);
+//		    }
     // interval_size += int_curr.size();
     interval_spectrum[r_c].push_back(int_curr.size());
-
+    //std::cerr << int_curr.size() << " ";
     if (int_curr.size() == 0) {
      //printf("!here");
       return;
@@ -150,7 +155,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
   }
   //printf("heer");
   for (auto ic : int_curr) {
-       //std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
+      // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
        //ic.sai.x[1],
        //        ic.sai.x[2]);
     if (ic.sai.x[2] >= 1) {
@@ -209,6 +214,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
 
 void query_bwt_rope(std::string index_pre, const char *query_file,
                     int threads) {
+  double t_start = realtime();
   auto i_file = index_pre + ".bwt";
   auto t_file = index_pre + ".dollars";
   auto g_file = index_pre + ".graph";
@@ -217,6 +223,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   rld_t *index = rld_restore(i_file.c_str());
 
+  //std::cerr << "size: " << index->l << "\n";
   std::vector<std::vector<uint64_t>> tags = uintmat_load(t_file.c_str());
 
   std::vector<std::vector<uint64_t>> adj = uintmat_load(g_file.c_str());
@@ -229,9 +236,26 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
   std::vector<std::string> suff(cache.size());
   std::map<std::string, uint64_t> suff_map;
+  std::vector<std::string> sfs;
 
+std::fprintf(stderr,
+               "[M::%s] index loaded in %.3f sec\n",
+               __func__, realtime() - t_start);
+
+
+/* uint64_t cc = 0;
+   for (auto v : adj) {
+      std::cout << cc << ": ";
+      for (auto n : v) {
+        std::cout << n << " ";
+      }
+      std::cout << "\n";
+      cc++;
+    }*/
   uint64_t ls = log4(cache.size());
-  std::cerr << "seeds of size " << cache.size() << " " << ls << "\n";
+  //std::cerr << "seeds of size " << cache.size() << " " << ls << "\n";
+  t_start = realtime();
+  fprintf(stderr, "[M::%s] seeds of size %ld having %ld cache intervals\n", __func__, ls, cache.size());
   for (uint64_t i = 0; i < cache.size(); ++i) {
     std::string suff_t(ls, ' ');
     int cur = i;
@@ -242,6 +266,7 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     }
     // std::cout << suff_t << "\n";
     suff_map[suff_t] = i;
+    sfs.push_back(suff_t);
     // std::cout << suff[i] << "\n";
   }
   //
@@ -251,6 +276,10 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     rldintv_t sai;
     // uint64_t curr_node;
     for (auto v : s) {
+     //std::cerr << "suff: "  << sfs[k] << " ->";
+     //fprintf(stderr, " cache %ld %ld %ld -> ", v[0], v[1], v[2]);
+     //auto en =  get_end_nodes(index, v[0], v[1], tags, adj);
+    //for(auto enn: en)  {fprintf(stderr, " %ld ", enn); if (enn==57905700) exit(1);}fprintf(stderr, "\n");
       sai.info = 0;
       sai.x[0] = v[0];
       sai.x[1] = v[0];
@@ -260,7 +289,18 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
     cache[k] = tv;
     k++;
   }
+  std::fprintf(stderr,
+               "[M::%s] cache loaded in %.3f sec\n",
+               __func__, realtime() - t_start);
 
+  t_start = realtime();
+  uint64_t al = 0;
+ //auto int_tt = cache[suff_map[std::string("CTGTA")]];
+ /*for(auto iii: int_tt){
+fprintf(stderr, "CTGTA %ld %ld %ld -> ", iii.sai.x[0], iii.sai.x[2], iii.curr_node);
+auto en =  get_end_nodes(index, iii.sai.x[0], iii.sai.x[2], tags, adj);
+for(auto enn: en)  {fprintf(stderr, " %ld ", enn); if (enn==57905700) ;}fprintf(stderr, "\n");
+}*/
   uint8_t *s;
   // q interval
   rldintv_t sai;
@@ -272,14 +312,15 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
   gzFile fp = gzopen(query_file, "rb");
   kseq_t *ks = kseq_init(fp);
   int l, i;
-  int r_c = 0;
+  uint64_t r_c = 0;
 
   std::fflush(stdout);
+//#pragma omp parallel
   while ((l = kseq_read(ks)) >= 0) {
-    std::fprintf(stderr, "%d\r", r_c);
-
+    //std::fprintf(stderr, "%d\r", r_c);
+    fprintf(stderr, "[M::%s] analyzed %ld reads\r", __func__, r_c);
     s = (uint8_t *)ks->seq.s;
-
+    al += l;
     std::string suf(ls, ' ');
     int sufc = 0;
     // change encoding
@@ -291,9 +332,18 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
       }
     }
 
-    // std::cout << suf << "\n";
+    //std::cerr << "suff: "  << suf << "\n";
     auto int_v = cache[suff_map[suf]];
-
+/*for(auto v: int_v){
+fprintf(stderr, "cache %ld %ld\n", v.sai.x[0], v.sai.x[2]);
+if(v.sai.x[2]==1){
+auto en =  get_end_nodes(index, v.sai.x[0], v.sai.x[2], tags, adj);
+for(auto enn: en){
+fprintf(stderr, "end for %ld %ld\n", v.sai.x[0], enn);
+}
+}
+}*/
+//   std::cout << "start size: " << int_v.size() << std::endl;
     if (int_v.empty())
       continue;
 
@@ -302,10 +352,12 @@ void query_bwt_rope(std::string index_pre, const char *query_file,
 
     ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(), ks->name.s,
         r_c, int_v);
-
+    //for(auto is: interval_spectrum[0]) std::cerr << is << " ";
     r_c++;
   }
-
+std::fprintf(stderr,
+               "[M::%s] all %ld of avg. length %ld queries analyzed in %.3f sec\n",
+               __func__, r_c, al/r_c, realtime() - t_start);
   kseq_destroy(ks);
   gzclose(fp);
   rld_destroy(index);

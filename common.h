@@ -67,7 +67,7 @@ uint8_t get_bwt_symb(const rld_t *index, uint64_t pos) {
   return symb;
 }
 
-uint64_t findnode(const rld_t *index, uint64_t pos, unsigned end,
+uint64_t findnode(const rld_t *index, uint64_t pos, uint64_t end,
                   std::vector<std::vector<uint64_t>> &tags) {
   // std::fprintf(stderr, "pos %d", pos);
   uint8_t symb = get_bwt_symb(index, pos);
@@ -83,7 +83,7 @@ uint64_t findnode(const rld_t *index, uint64_t pos, unsigned end,
   }
   // std::cout << "dollar: " << rld_rank11(index, sai.x[0], 0) << " at "
   //           << sai.x[0] << "\n";
-  auto end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+  uint64_t end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
   if (end_node == end - 1) {
     return 0;
   } else {
@@ -96,8 +96,8 @@ std::vector<uint64_t> get_end_nodes(const rld_t *index, uint64_t b_i,
                                     std::vector<std::vector<uint64_t>> &tags,
                                     std::vector<std::vector<uint64_t>> &adj) {
   std::vector<uint64_t> nodes;
-  auto d_b = rld_rank11(index, b_i, 0);
-  auto d_e = rld_rank11(index, b_i + l_i, 0);
+  uint64_t d_b = rld_rank11(index, b_i, 0);
+  uint64_t d_e = rld_rank11(index, b_i + l_i, 0);
   for (uint64_t j = d_b; j < d_e; j++) {
     uint64_t end_node = 0;
     if (tags[0][j] != tags[0].size() - 1)
@@ -133,24 +133,30 @@ std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
                                     std::vector<std::vector<uint64_t>> &tags,
                                     std::vector<std::vector<uint64_t>> &adj,
                                     uint8_t symb, std::vector<uint64_t> p,
-                                    uint64_t e_n = INT_MAX) {
+                                    uint64_t e_n = UINT64_MAX) {
   std::vector<node_sai> intervals;
   // if (e_n == INT_MAX) {
-  auto end_nodes = get_end_nodes(index, b_i, l_i, tags, adj);
-  if (verbose && end_nodes.size() >= 1) {
-    std::cerr << "analyzing end nodes for interval [" << b_i << ", "
-              << b_i + l_i << "]: ";
-    auto d_b = rld_rank11(index, b_i, 0);
-    auto d_e = rld_rank11(index, b_i + l_i, 0);
-    std::cerr << "  (" << d_b << ", " << d_e << "): ";
-    for (auto n : end_nodes) {
-      std::cerr << n << " ";
-    }
-    std::cerr << "\n";
-  }
-  for (auto n : end_nodes) {
-    auto adj_nodes = get_adj_nodes_f(index, n, tags, adj);
+  std::vector<uint64_t> end_nodes = get_end_nodes(index, b_i, l_i, tags, adj);
+  //if (verbose && end_nodes.size() >= 1) {
+  //if(end_nodes.size()>=1){  
+  // // std::cerr << "analyzing end nodes for interval [" << b_i << ", "
+  // //           << b_i + l_i << "]: ";
+  //  uint64_t d_b = rld_rank11(index, b_i, 0);
+  //  uint64_t d_e = rld_rank11(index, b_i + l_i, 0);
+  //  //std::cerr << "  (" << d_b << ", " << d_e << "): ";
+  //  //for (auto n : end_nodes) {
+  //  //  std::cerr << n << " ";
+  //  //}
+  //  //std::cerr << "\n";
+  //}
+  for (uint64_t n : end_nodes) {
+    std::vector<std::pair<uint64_t, uint64_t>> adj_nodes = get_adj_nodes_f(index, n, tags, adj);
+    //std::cerr << "sibling: ";
     for (auto an : adj_nodes) {
+     if (verbose){
+      std::cerr << "(" << an.first <<  ", " << an.second << ") ";
+     }
+    //std::cerr << "\n";
       rldintv_t sai_t;
       sai_t.x[0] = an.first;
       sai_t.x[1] = an.first;
@@ -162,6 +168,7 @@ std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
       /* std::vector<uint64_t> nn = {n}; */
       /* intervals.push_back({sai_t, an.second, nn}); */
       if (symb != 6) {
+       //fprintf(stderr, "%d vs %d \n", get_bwt_symb(index, an.first), symb);
         if (get_bwt_symb(index, an.first) == symb) {
           //  std::vector<uint64_t> nn = {n, an.second};
           std::vector<uint64_t> nn = {n};
@@ -175,7 +182,8 @@ std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
       }
     }
   }
-
+  //fprintf(stderr, "with %d ", symb);
+  //std::cerr << " interval size: " << intervals.size() << "\n";
   return intervals;
 }
 
