@@ -21,7 +21,7 @@ rule mergeIndexTime:
     input:
         expand(
             os.path.join(output_folder, "bench", "{tool}", "index", "index.csv"),
-            tool = ["gindex", "gindex_fast", "gindex_cache", "graphpp"],
+            tool = ["gindex", "gindex_fast", "gindex_cache", "gindex_merge", "graphpp"],
         ),
     output:
         os.path.join(results_folder, "results", "index.csv"),
@@ -35,7 +35,7 @@ rule mergeQueryTime:
     input:
         expand(
             os.path.join(output_folder, "bench", "{tool}", "query", "{q}.csv"),
-            tool = ["gindex", "gindex_fast", "gindex_cache", "graphpp"],
+            tool = ["gindex", "gindex_fast", "gindex_cache", "gindex_merge", "graphpp"],
             q=QUERIES
         ),
     output:
@@ -44,4 +44,20 @@ rule mergeQueryTime:
     shell:
         """
         csvstack {input} > {output}
+        """
+
+rule plot:
+    input:
+        i = os.path.join(results_folder, "results", "index.csv"),
+        q = os.path.join(results_folder, "results", "query.csv"),
+    params:
+        os.path.join(results_folder, "results")
+    output:
+        os.path.join(results_folder, "results", "query_mem.pdf"),
+        os.path.join(results_folder, "results", "query_time.pdf"),
+        os.path.join(results_folder, "results", "index.pdf"),
+    conda: "../envs/results.yml"
+    shell:
+        """
+        python workflow/scripts/plot.py {input.i} {input.q} {params}
         """

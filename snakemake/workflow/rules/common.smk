@@ -54,6 +54,24 @@ rule downloadGindex_cache:
         make
         """
 
+rule downloadGindex_merge:
+    output:
+        d=directory(gindex_merge_folder),
+        exe_i=os.path.join(gindex_merge_folder, "gindex")
+    conda: "../envs/compilation.yml"
+    shell:
+        """
+        git clone --recursive https://github.com/dlcgold/graph_index.git {output.d}
+        cd {output.d}
+        git checkout merge
+        git submodule update --init --recursive
+        cd gfatools
+        make
+        cd ../mfmi
+        make
+        cd ..
+        make
+        """
 
 rule downloadGraphpp:
     output:

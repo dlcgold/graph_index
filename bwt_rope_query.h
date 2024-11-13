@@ -36,9 +36,9 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
          rldintv_t &sai, std::vector<std::vector<uint64_t>> &tags,
          std::vector<std::vector<uint64_t>> &adj,
          std::vector<uint64_t> labels_map, uint64_t curr_node, char *read_name,
-         uint64_t r_c, std::vector<node_sai> int_s) {
+         uint64_t r_c, std::vector<node_sai> int_s, int threads) {
 
-  interval_spectrum.push_back({});
+  //interval_spectrum.push_back({});
   // uint64_t tollerance = 0;
 
   uint8_t symb = i > 0 ? s[i] : 5;
@@ -68,7 +68,19 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     if (verbose) {
       std::fprintf(stderr, "\n");
     }
-    for (auto ic : int_curr) {
+    
+    //rldintv_t osai[6];
+    //rldintv_t sai;
+   // symb = i > 0 ? s[i - 1] : 5;
+    //std::vector<node_sai> tmp_int;
+    //node_sai ic;
+    //uint64_t ici;
+    std::vector<std::vector<node_sai>> local_int_next(int_curr.size());
+#pragma omp parallel for num_threads(threads) 
+//#pragma omp parallel for num_threads(threads) private(ici) shared(int_next)
+    //for (node_sai ic : int_curr) {
+    for(uint64_t ici = 0; ici < int_curr.size(); ici++){
+    node_sai ic = int_curr[ici];
     // if(ic.sai.x[0] > INT64_MAX - ic.sai.x[2] - 2) {
       if (verbose) {
         std::fprintf(stderr,
@@ -83,6 +95,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
       //   osai[c].x[1] = ic.x[1];
       // }
       auto sai = osai[s[i]];
+      //sai = osai[s[i]];
 
       //std::fprintf(stderr, "at %ld with %ld extended into [%ld, %ld, %ld]\n", i, s[i], sai.x[0],
       //               sai.x[1], sai.x[2]);
@@ -96,9 +109,9 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
       }
       if (sai.x[2] > 0) {
         symb = i > 0 ? s[i - 1] : 5;
-
-        auto tmp_int =
-            get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
+         
+         auto tmp_int = get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {}); 
+       //tmp_int = get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});  
         if (!tmp_int.empty()) {
           // for (auto nnn : tmp_int[0].path) {
           //   std::fprintf(stderr, "path with %ld \n", nnn);
@@ -110,10 +123,16 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
                            ic2.sai.x[1], ic2.sai.x[2], ic2.curr_node);
             }
           }
-          int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
-        }
 
-        int_next.push_back({sai, ic.curr_node, ic.path});
+          // for (auto ic2 : tmp_int) {
+          // #pragma omp critical
+          //   int_next.push_back(ic2);
+          // }
+          //#pragma omp critical
+          local_int_next[ici].insert(local_int_next[ici].end(), tmp_int.begin(), tmp_int.end());
+        }
+        //#pragma omp critical
+        local_int_next[ici].push_back({sai, ic.curr_node, ic.path});
 
         // std::fprintf(stderr, "INTERVALS: %ld %ld\n", interval_size,
         // int_next.size());
@@ -127,6 +146,10 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
         }
       }
     }
+    for(uint64_t ici = 0; ici < int_curr.size(); ici++)
+    int_next.insert(int_next.end(), local_int_next[ici].begin(), local_int_next[ici].end());
+  
+
     // int_curr = int_next;
     //printf("before merge: %ld\n", int_next.size());
     
@@ -137,7 +160,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     //fprintf(stderr, "one %ld %ld %ld %ld", int_curr[0].sai.x[0], int_curr[0].sai.x[1], int_curr[0].sai.x[2], int_curr[0].curr_node);
 //		    }
     // interval_size += int_curr.size();
-    interval_spectrum[r_c].push_back(int_curr.size());
+    //interval_spectrum[r_c].push_back(int_curr.size());
     //std::cerr << int_curr.size() << " ";
     if (int_curr.size() == 0) {
      //printf("!here");
@@ -351,7 +374,7 @@ fprintf(stderr, "end for %ld %ld\n", v.sai.x[0], enn);
     i = l - 1;
 
     ext(index, s, i, l, sai, tags, adj, labels_map, tags[0].size(), ks->name.s,
-        r_c, int_v);
+        r_c, int_v, threads);
     //for(auto is: interval_spectrum[0]) std::cerr << is << " ";
     r_c++;
   }
