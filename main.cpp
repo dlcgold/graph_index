@@ -1,6 +1,6 @@
 #include "argparse/argparse.hpp"
-#include "bwt_rope.h"
-#include "bwt_rope_query.h"
+#include "gindex_index.h"
+#include "gindex_query.h"
 #include <iostream>
 #include <string>
 
@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
   std::string gfa_file = "";
   std::string out_prefix = "";
   int threads = 1;
-  int cache = 5;
+  int cache = 0;
 
   index_command.add_description(
       "Index a given GFA file to perform exact pattern-matching");
@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
       .help("number of threads (default 1)")
       .store_into(threads);
   index_command.add_argument("-c", "--cache")
-      .default_value(5)
-      .help("lenght of kmer to preprocess (default 5)")
+      .default_value(0)
+      .help("lenght of kmer to preprocess (default 1)")
       .store_into(cache);
   index_command.add_argument("-o", "--output")
       .help("output prefix")
@@ -38,6 +38,8 @@ int main(int argc, char *argv[]) {
   std::string index_file = "";
   std::string query_file = "";
   int threadsq = 1;
+  bool full = false;
+  bool nocache = false;
   query_command.add_description(
       "Query a given index, queries in FASTA/FASTQ format");
   query_command.add_argument("-i", "--input")
@@ -50,7 +52,17 @@ int main(int argc, char *argv[]) {
       .default_value(1)
       .help("number of threads (default 1)")
       .store_into(threadsq);
-
+  query_command.add_argument("-f", "--full")
+      .default_value(false)
+      .implicit_value(true)
+      .help("compute all nodes path for a match (warning: cache will not be "
+            "used, very slow)")
+      .store_into(full);
+  query_command.add_argument("-n", "--nocache")
+      .default_value(false)
+      .implicit_value(true)
+      .help("ignore cache")
+      .store_into(nocache);
   program.add_subparser(query_command);
 
   if (argc == 1) {
@@ -66,12 +78,13 @@ int main(int argc, char *argv[]) {
   }
 
   if (program.is_subcommand_used("index")) {
-    if (cache <= 0) {
-      cache = 1;
-    }
-    build_bwt_rope(gfa_file.c_str(), out_prefix, threads, cache);
+    gindex_index(gfa_file.c_str(), out_prefix, threads, cache);
   } else {
-    query_bwt_rope(index_file, query_file.c_str(), threadsq);
+    if (full == true) {
+      gindex_query_path(index_file, query_file.c_str(), threadsq);
+    } else {
+      gindex_query(index_file, query_file.c_str(), threadsq, nocache);
+    }
   }
   //
   return 0;

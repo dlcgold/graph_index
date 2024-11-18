@@ -124,7 +124,8 @@ void gindex_query_path(std::string index_pre, const char *query_file,
   rld_destroy(index);
 }
 
-void gindex_query(std::string index_pre, const char *query_file, int threads) {
+void gindex_query(std::string index_pre, const char *query_file, int threads,
+                  bool nocache) {
   double t_start = realtime();
   auto i_file = index_pre + ".bwt";
   auto t_file = index_pre + ".dollars";
@@ -149,7 +150,7 @@ void gindex_query(std::string index_pre, const char *query_file, int threads) {
   std::fprintf(stderr, "[M::%s] index loaded in %.3f sec\n", __func__,
                realtime() - t_start);
 
-  if (std::filesystem::exists(c_file)) {
+  if (!nocache && std::filesystem::exists(c_file)) {
     c_int = uintmat3_load(c_file.c_str());
     cache.resize(c_int.size());
     suff.resize(cache.size());
@@ -195,7 +196,8 @@ void gindex_query(std::string index_pre, const char *query_file, int threads) {
     std::fprintf(stderr, "[M::%s] cache loaded in %.3f sec\n", __func__,
                  realtime() - t_start);
   } else {
-    std::fprintf(stderr, "[M::%s] cache not found\n", __func__);
+    std::fprintf(stderr, "[M::%s] cache not found or ignored by user input\n",
+                 __func__);
   }
 
   /* uint64_t cc = 0;
