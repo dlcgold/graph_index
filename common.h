@@ -29,7 +29,7 @@ struct node_sai {
     return sai.x[0] < other.sai.x[0];
   }
   bool operator==(const node_sai &other) const {
-    return sai.x[0] == other.sai.x[0] && sai.x[2] == other.sai.x[2];
+    return sai.x[0] == other.sai.x[0] && sai.x[2] == other.sai.x[2] && path == other.path;
   }
 };
 
@@ -128,6 +128,62 @@ get_adj_nodes_f(const rld_t *index, uint64_t end_node,
   return nodes;
 }
 
+
+std::vector<node_sai>
+get_intervals_path(const rld_t *index, uint64_t b_i, uint64_t l_i,
+              std::vector<std::vector<uint64_t>> &tags,
+              std::vector<std::vector<uint64_t>> &adj, uint8_t symb,
+              std::vector<uint64_t> p, uint64_t e_n = UINT64_MAX) {
+  std::vector<node_sai> intervals;
+  if (e_n == UINT64_MAX) {
+    auto end_nodes = get_end_nodes(index, b_i, l_i, tags, adj);
+    if (verbose && end_nodes.size() >= 1) {
+      std::cerr << "analyzing end nodes for interval [" << b_i << ", "
+                << b_i + l_i << "]: ";
+      auto d_b = rld_rank11(index, b_i, 0);
+      auto d_e = rld_rank11(index, b_i + l_i, 0);
+      std::cerr << "  (" << d_b << ", " << d_e << "): ";
+      for (auto n : end_nodes) {
+        std::cerr << n << " ";
+      }
+      std::cerr << "\n";
+    }
+    for (auto n : end_nodes) {
+      std::vector<std::pair<uint64_t, uint64_t>> adj_nodes = get_adj_nodes_f(index, n, tags, adj);
+      for (auto an : adj_nodes) {
+        rldintv_t sai_t;
+        sai_t.x[0] = an.first;
+        sai_t.x[1] = an.first;
+        sai_t.x[2] = 1;
+        if (verbose) {
+          fprintf(stderr, "comparing %d vs %d\n", get_bwt_symb(index, an.first),
+                  symb);
+        }
+        if (get_bwt_symb(index, an.first) == symb) {
+          std::vector<uint64_t> nn = {n, an.second};
+          intervals.push_back({sai_t, an.second, nn});
+          // std::fprintf(stderr, "size %ld \n",
+          //         intervals[intervals.size() - 1].path[0]);
+        }
+      }
+    }
+  } else {
+    auto adj_nodes = get_adj_nodes_f(index, e_n, tags, adj);
+    for (auto an : adj_nodes) {
+      rldintv_t sai_t;
+      sai_t.x[0] = an.first;
+      sai_t.x[1] = an.first;
+      sai_t.x[2] = 1;
+      if (get_bwt_symb(index, an.first) == symb) {
+        auto n_p = p;
+        n_p.push_back(an.second);
+        intervals.push_back({sai_t, an.second, n_p});
+      }
+    }
+  }
+  return intervals;
+}
+
 std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
                                     uint64_t l_i,
                                     std::vector<std::vector<uint64_t>> &tags,
@@ -186,6 +242,167 @@ std::vector<node_sai> get_intervals(const rld_t *index, uint64_t b_i,
   //std::cerr << " interval size: " << intervals.size() << "\n";
   return intervals;
 }
+
+
+void ext_path(const rld_t *index, const uint8_t *s, int i, uint64_t l,
+         rldintv_t &sai, std::vector<std::vector<uint64_t>> &tags,
+         std::vector<std::vector<uint64_t>> &adj,
+         std::vector<uint64_t> labels_map, uint64_t curr_node,
+         char *read_name) {
+
+  //uint64_t tollerance = l / 5;
+  //tollerance = 0;
+
+  uint8_t symb = i > 0 ? s[i] : 5;
+  // std::vector<uint64_t> match_nodes;
+  std::vector<node_sai> int_curr =
+      get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
+
+  int_curr.push_back({sai, curr_node});
+  if (verbose) {
+    std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
+    for (auto ic : int_curr) {
+      std::fprintf(stderr, "[%ld, %ld, %ld]\n", ic.sai.x[0], ic.sai.x[1],
+                   ic.sai.x[2]);
+    }
+  }
+  std::vector<node_sai> int_next;
+
+  for (; i >= 0; --i) {
+    if (verbose) {
+      std::fprintf(stderr, "\n");
+    }
+    for (auto ic : int_curr) {
+      if (verbose) {
+        std::fprintf(stderr,
+                     "analyzing [%ld, %ld, %ld] with char %d at pos %d\n",
+                     ic.sai.x[0], ic.sai.x[1], ic.sai.x[2], s[i], i);
+        std::fprintf(stderr, "in %ld we have %d\n", ic.sai.x[0],
+                     get_bwt_symb(index, ic.sai.x[0]));
+      }
+      rldintv_t osai[6];
+      rld_extend(index, &ic.sai, osai, 1);
+      // for (uint64_t c = 0; c < 6; ++c) {
+      //   osai[c].x[1] = ic.x[1];
+      // }
+      auto sai = osai[s[i]];
+      if (verbose) {
+        std::fprintf(stderr, "extended into [%ld, %ld, %ld]\n", sai.x[0],
+                     sai.x[1], sai.x[2]);
+        for (uint8_t c = 0; c < 6; ++c) {
+          std::fprintf(stderr, "other with %d: [%ld, %ld, %ld]\n", c,
+                       osai[c].x[0], osai[c].x[1], osai[c].x[2]);
+        }
+      }
+      if (sai.x[2] > 0) {
+        if (i != 0) {
+          symb = i > 0 ? s[i - 1] : 5;
+
+          if (sai.x[2] == 1 && ic.curr_node != tags[0].size() &&
+              get_bwt_symb(index, sai.x[0]) == 0) {
+            auto tmp_int = get_intervals_path(index, sai.x[0], sai.x[2], tags, adj,
+                                         symb, ic.path, ic.curr_node);
+            if (!tmp_int.empty()) {
+              if (verbose) {
+                for (auto ic2 : tmp_int) {
+                  std::fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
+                               ic2.sai.x[1], ic2.sai.x[2]);
+                }
+              }
+              int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
+            }
+          } else {
+            auto tmp_int =
+                get_intervals_path(index, sai.x[0], sai.x[2], tags, adj, symb, {});
+            if (!tmp_int.empty()) {
+              // for (auto nnn : tmp_int[0].path) {
+              //   std::fprintf(stderr, "path with %ld \n", nnn);
+              // }
+              if (verbose) {
+                for (auto ic2 : tmp_int) {
+                  std::fprintf(stderr, "adding [%ld, %ld, %ld]\n", ic2.sai.x[0],
+                               ic2.sai.x[1], ic2.sai.x[2]);
+                }
+              }
+              int_next.insert(int_next.end(), tmp_int.begin(), tmp_int.end());
+            }
+          }
+        }
+        int_next.push_back({sai, ic.curr_node, ic.path});
+
+        //interval_size += int_next.size();
+        // std::fprintf(stderr, "INTERVALS: %ld %ld\n", interval_size,
+        // int_next.size());
+
+        if (verbose) {
+          for (auto ic : int_next) {
+            std::fprintf(stderr, "tmp next [%ld, %ld, %ld]\n", ic.sai.x[0],
+                         ic.sai.x[1], ic.sai.x[2]);
+          }
+        }
+      }
+    }
+    int_curr = int_next;
+    if (int_curr.size() == 0) {
+      return;
+    }
+    int_next.clear();
+    if (verbose) {
+      std::fprintf(stderr, "at %d for char %d finals intervals are:\n", i,
+                   s[i]);
+      for (auto ic2 : int_curr) {
+        std::fprintf(stderr, "[%ld, %ld, %ld]\n", ic2.sai.x[0], ic2.sai.x[1],
+                     ic2.sai.x[2]);
+      }
+    }
+  }
+  std::sort(int_curr.begin(), int_curr.end());
+
+  int_curr.erase(std::unique(int_curr.begin(), int_curr.end()),
+                  int_curr.end());
+
+  for (auto ic : int_curr) {
+    if (ic.sai.x[2] >= 1) {
+      // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
+      //  ic.sai.x[1],
+      //          ic.sai.x[2]);
+      if (ic.curr_node != tags[0].size()) {
+        if (ic.path.size() > 1) {
+          // std::fprintf(stderr, "Match at nodes: ");
+          std::string matches = "";
+          for (int i = ic.path.size() - 1; i >= 0; i--) {
+            // std::fprintf(stderr, "%ld ", ic.path[i]);
+            if (i != 0) {
+              std::ostringstream s;
+              s << labels_map[ic.path[i]] << ">";
+              matches = matches + s.str();
+            } else {
+              std::ostringstream s;
+              s << labels_map[ic.path[i]];
+              matches = matches + s.str();
+            }
+          }
+          std::cout << "@" << read_name << "\t" << matches << "\n";
+          // std::fprintf(stderr, "%s\t%s\n", read_name, matches);
+          //  std::fprintf(stderr, "\n");
+        } else {
+          // std::fprintf(stderr, "Match at node: %ld\n", ic.curr_node);
+          std::fprintf(stdout, "@%s\t%ld\n", read_name,
+                       labels_map[ic.curr_node]);
+        }
+      } else {
+        for (uint64_t k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
+          auto node_f = findnode(index, k, tags[0].size(), tags);
+          // std::fprintf(stderr, "Match at node: %ld\n", node_f);
+          std::fprintf(stdout, "@%s\t%ld\n", read_name, labels_map[node_f]);
+        }
+      }
+    } else {
+      std::fprintf(stdout, "@%s\tNO MATCH\n", read_name);
+    }
+  }
+}
+
 
 std::vector<node_sai> ext_int(const rld_t *index, const uint8_t *s, int i,
                               uint64_t l, rldintv_t &sai,

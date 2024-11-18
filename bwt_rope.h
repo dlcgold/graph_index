@@ -89,7 +89,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   std::string graph_out = out_prefix + ".graph";
   std::string labels_out = out_prefix + ".labels";
   std::string int_out = out_prefix + ".cache";
- 
+
   gfa_t *ingfa;
   ingfa = gfa_read(gfa_file);
   std::vector<std::pair<std::string, uint64_t>> labels;
@@ -108,7 +108,7 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   uint64_t ca = 0;
   bool fc = true;
   // std::cout << "nodes: " << ingfa->n_seg << "\n";
-  //std::cout << "Loading the graph \n";
+  // std::cout << "Loading the graph \n";
   for (uint64_t i = 0; i < ingfa->n_seg; ++i) {
     // auto l = ingfa->seg[i].len;
     std::string seq_t = ingfa->seg[i].seq;
@@ -141,20 +141,23 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
       ml = labels_map[i];
     // labels_map[i] = std::string(segname);
   }
-  std::fprintf(stderr,
-               "[M::%s] graph loaded in %.3f sec\n",
-               __func__, realtime() - t_start);
+  std::fprintf(stderr, "[M::%s] graph loaded in %.3f sec\n", __func__,
+               realtime() - t_start);
   t_start = realtime();
   std::string dummy_s = "ACGTN";
   if (al + 1 > INT32_MAX) {
-    std::cerr << "Possible issues related to BWT index. Trying fixing with " << ca + 2 << " A\n";
+    std::fprintf(stderr,
+                 "[M::%s] Possible issues related to BWT index. Trying fixing "
+                 "with %ld As\n",
+                 __func__, ca + 2);
+
     dummy_s = std::string(ca + 2, 'A') + std::string("CGTN");
   } else {
-    std::cerr << "Safe range of " << al << " bases\n";
+    std::fprintf(stderr, "[M::%s] safe range of %ld bases\n", __func__, al);
   }
   std::vector<std::vector<uint64_t>> adj_f(ingfa->n_seg + 1);
   std::vector<uint64_t> labels_map_f(ingfa->n_seg + 1);
-  //std::cout << "Sorting the labels\n";
+  // std::cout << "Sorting the labels\n";
   labels.insert(labels.begin(), {dummy_s, ingfa->n_seg});
   labels_map[ingfa->n_seg] = ml + 1;
   std::stable_sort(labels.begin(), labels.end(),
@@ -171,11 +174,10 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   // labels.push_back({"$ACGTN", ingfa->n_seg});
   // labels.insert(labels.begin(), {"$ACGTN", ingfa->n_seg});
   // labels_map[ingfa->n_seg] = ml + 1;
-  std::fprintf(stderr,
-               "[M::%s] labels sorted in %.3f sec\n",
-               __func__, realtime() - t_start);
+  std::fprintf(stderr, "[M::%s] labels sorted in %.3f sec\n", __func__,
+               realtime() - t_start);
   t_start = realtime();
-  //std::cout << "Build the index\n";
+  // std::cout << "Build the index\n";
   auto map_l = std::vector<uint64_t>(labels.size());
   auto j = 0;
   for (auto l : labels) {
@@ -215,16 +217,12 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   //   cc++;
   // }
 
-  int start = true;
   for (auto ll : labels) {
     auto seq = ll.first.c_str();
     auto l = ll.first.size();
     // std::cout << seq << "\n";
     s = (uint8_t *)seq;
-    if (seq[0] == '$') {
-      start = false;
-      s[0] = 0;
-    }
+
     //  change encoding
     for (uint64_t j = 0; j < l; ++j)
       s[j] = fm6_i(s[j]);
@@ -258,9 +256,9 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   uintmat_dump(adj_f, graph_out.c_str());
   uintvec_dump(labels_map_f, labels_out.c_str());
   // rlc_print_bwt(rlc);
-  
+
   rlc_dump(rlc, rope_out.c_str());
-  int bwt_l = rlc->l;
+  // int bwt_l = rlc->l;
 
   std::vector<std::vector<uint64_t>> tags(2);
   tags[0].resize(ingfa->n_seg + 1);
@@ -283,76 +281,86 @@ void build_bwt_rope(const char *gfa_file, std::string out_prefix, int threads,
   gfa_destroy(ingfa);
   free(buf.s);
 
-  std::fprintf(stderr,
-               "[M::%s] built and dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
-               __func__, realtime() - t_start, cputime());
-  //std::vector<std::vector<uint64_t>> tags = uintmat_load(tag_out.c_str());
-  // std::vector<std::vector<uint64_t>> adj_f = uintmat_load(graph_out.c_str());
-  // std::vector<uint64_t> labels_map_f = uintvec_load(labels_out.c_str());
+  std::fprintf(
+      stderr,
+      "[M::%s] built and dumped index - Total time: %.3f sec; CPU: %.3f sec\n",
+      __func__, realtime() - t_start, cputime());
+  // std::vector<std::vector<uint64_t>> tags = uintmat_load(tag_out.c_str());
+  //  std::vector<std::vector<uint64_t>> adj_f =
+  //  uintmat_load(graph_out.c_str()); std::vector<uint64_t> labels_map_f =
+  //  uintvec_load(labels_out.c_str());
   t_start = realtime();
-  rld_t *index = rld_restore(rope_out.c_str());
-  rldintv_t sai;
-  for (int c = 0; c < 6; ++c) {
-    fm6_set_intv(index, c, sai);
-  }
-  // for (unsigned int i = 0; i < bwt_l; i++) {
-  //   printf("%c", "$ACGTN"[get_bwt_symb(index, i)]);
-  // }
-  std::vector<std::vector<std::vector<node_sai>>> intervals_fast(cache);
+  if (cache > 0) {
+    rld_t *index = rld_restore(rope_out.c_str());
+    rldintv_t sai;
+    for (int c = 0; c < 6; ++c) {
+      fm6_set_intv(index, c, sai);
+    }
+    // for (unsigned int i = 0; i < bwt_l; i++) {
+    //   printf("%c", "$ACGTN"[get_bwt_symb(index, i)]);
+    // }
+    std::vector<std::vector<std::vector<node_sai>>> intervals_fast(cache);
 
-  // #pragma omp parallel
-  // #pragma omp for
-  // #pragma omp parallel for num_threads(4)
-  for (int c = 1; c < 5; ++c) {
-    fm6_set_intv(index, c, sai);
+    // #pragma omp parallel
+    // #pragma omp for
+    // #pragma omp parallel for num_threads(4)
+    for (int c = 1; c < 5; ++c) {
+      fm6_set_intv(index, c, sai);
 
-    std::vector<node_sai> e = {{sai, tags[0].size()}};
-    intervals_fast[cache - 1].push_back(e);
-    auto tmp_int = get_intervals(index, sai.x[0], sai.x[2], tags, adj_f, 6, {});
-    intervals_fast[cache - 1][c - 1].insert(
-        intervals_fast[cache - 1][c - 1].end(), tmp_int.begin(), tmp_int.end());
-  }
-  std::cerr << "\nPreparing cache of size " << cache << " using " << threads << " threads, this will take time\n";
-  for (int i = cache - 2; i >= 0; i--) {
-    intervals_fast[i].resize(intervals_fast[i + 1].size() * 4);
+      std::vector<node_sai> e = {{sai, tags[0].size()}};
+      intervals_fast[cache - 1].push_back(e);
+      auto tmp_int =
+          get_intervals(index, sai.x[0], sai.x[2], tags, adj_f, 6, {});
+      intervals_fast[cache - 1][c - 1].insert(
+          intervals_fast[cache - 1][c - 1].end(), tmp_int.begin(),
+          tmp_int.end());
+    }
+    fprintf(stderr,
+            "[M::%s] Preparing cache of size %ld using %ld threads, this will "
+            "take time\n",
+            __func__, cache, threads);
+    for (int i = cache - 2; i >= 0; i--) {
+      intervals_fast[i].resize(intervals_fast[i + 1].size() * 4);
 #pragma omp parallel for num_threads(threads)
-    for (uint64_t j = 0; j < intervals_fast[i + 1].size(); j++) {
-      auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
-                           intervals_fast[i + 1][j]);
-      // intervals_fast[i + 1].clear();
-      //for (auto ee : e) {
-      //  intervals_fast[i].push_back(ee);
-      // }
-      intervals_fast[i][j * 4] = e[0];
-      intervals_fast[i][j * 4 + 1] = e[1];
-      intervals_fast[i][j * 4 + 2] = e[2];
-      intervals_fast[i][j * 4 + 3] = e[3];
-
-    }
-    intervals_fast[i + 1].clear();
-    // std::cerr << intervals_fast[i].size() << "\r";
-    fprintf(stderr, "[M::%s] computed cache of size %ld\n", __func__, intervals_fast[i].size());
-  }
-
-  std::vector<std::vector<std::vector<uint64_t>>> intervals_f(
-      (int)std::pow(4, cache));
-  int k = 0;
-  for (auto s : intervals_fast[0]) {
-    std::vector<std::vector<uint64_t>> tmp_v;
-    for (auto i : s) {
-      std::vector<uint64_t> t = {i.sai.x[0], i.sai.x[2], i.curr_node};
-      tmp_v.push_back(t);
-
-      // printf("%ld \t %ld \t %ld\n", i.sai.x[0], i.sai.x[2], i.curr_node);
+      for (uint64_t j = 0; j < intervals_fast[i + 1].size(); j++) {
+        auto e = ext_by_alph(index, tags, adj_f, labels_map_f,
+                             intervals_fast[i + 1][j]);
+        // intervals_fast[i + 1].clear();
+        // for (auto ee : e) {
+        //  intervals_fast[i].push_back(ee);
+        // }
+        intervals_fast[i][j * 4] = e[0];
+        intervals_fast[i][j * 4 + 1] = e[1];
+        intervals_fast[i][j * 4 + 2] = e[2];
+        intervals_fast[i][j * 4 + 3] = e[3];
+      }
+      intervals_fast[i + 1].clear();
+      // std::cerr << intervals_fast[i].size() << "\r";
+      fprintf(stderr, "[M::%s] computed cache of size %ld\n", __func__,
+              intervals_fast[i].size());
     }
 
-    intervals_f[k] = tmp_v;
-    k++;
+    std::vector<std::vector<std::vector<uint64_t>>> intervals_f(
+        (int)std::pow(4, cache));
+    int k = 0;
+    for (auto s : intervals_fast[0]) {
+      std::vector<std::vector<uint64_t>> tmp_v;
+      for (auto i : s) {
+        std::vector<uint64_t> t = {i.sai.x[0], i.sai.x[2], i.curr_node};
+        tmp_v.push_back(t);
+
+        // printf("%ld \t %ld \t %ld\n", i.sai.x[0], i.sai.x[2], i.curr_node);
+      }
+
+      intervals_f[k] = tmp_v;
+      k++;
+    }
+    uintmat3_dump(intervals_f, int_out.c_str());
+    std::fprintf(stderr, "[M::%s] cache computed and dumped in %.3f sec\n",
+                 __func__, realtime() - t_start);
+  } else {
+    std::fprintf(stderr, "[M::%s] index built without cache\n", __func__);
   }
-  uintmat3_dump(intervals_f, int_out.c_str());
-  std::fprintf(stderr,
-               "[M::%s] cache computed and dumped in %.3f sec\n",
-               __func__, realtime() - t_start);
 }
 
 #endif // GRAPHINDEX_BWT_ROPE_H
