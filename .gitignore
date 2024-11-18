@@ -7,8 +7,10 @@
 *.time
 *.txt
 *.m
+.idea
+final
 gindex
 gindexquery
 all_back
 build
-compile_command.json
+compile_commands.json
