@@ -21,10 +21,10 @@ rule mergeIndexTime:
     input:
         expand(
             os.path.join(output_folder, "bench", "{tool}", "index", "index.csv"),
-            tool = ["gindex", "gindex_fast", "gindex_cache", "gindex_merge", "graphpp"],
+            tool = ["gindex", "gindex_no_cache", "graphpp"],
         ),
     output:
-        os.path.join(results_folder, "results", "index.csv"),
+        os.path.join(results_folder, "index.csv"),
     conda: "../envs/csvkit.yml"
     shell:
         """
@@ -35,11 +35,11 @@ rule mergeQueryTime:
     input:
         expand(
             os.path.join(output_folder, "bench", "{tool}", "query", "{q}.csv"),
-            tool = ["gindex", "gindex_fast", "gindex_cache", "gindex_merge", "graphpp"],
+            tool = ["gindex_fast", "gindex_cache", "gindex_full", "graphpp"],
             q=QUERIES
         ),
     output:
-        os.path.join(results_folder, "results", "query.csv"),
+        os.path.join(results_folder, "query.csv"),
     conda: "../envs/csvkit.yml"
     shell:
         """
@@ -48,14 +48,14 @@ rule mergeQueryTime:
 
 rule plot:
     input:
-        i = os.path.join(results_folder, "results", "index.csv"),
-        q = os.path.join(results_folder, "results", "query.csv"),
+        i = os.path.join(results_folder, "index.csv"),
+        q = os.path.join(results_folder, "query.csv"),
     params:
-        os.path.join(results_folder, "results")
+        os.path.join(results_folder)
     output:
-        os.path.join(results_folder, "results", "query_mem.pdf"),
-        os.path.join(results_folder, "results", "query_time.pdf"),
-        os.path.join(results_folder, "results", "index.pdf"),
+        os.path.join(results_folder, "query_mem.pdf"),
+        os.path.join(results_folder, "query_time.pdf"),
+        os.path.join(results_folder, "index.pdf"),
     conda: "../envs/results.yml"
     shell:
         """

@@ -28,26 +28,26 @@ results_folder = config["folder"]["res"]
 
 gfa_n =gfa.split("/")[-1]
 
-print(gfa_n)
+#print(gfa_n)
 
 s = int((max_l - min_l) / (steps - 1))
 
 QUERIES = [min_l + i * s for i in range(steps)]
 q_p = QUERIES[0]
-print(QUERIES)
+#print(QUERIES)
 
 software_folder = f"resources/{software_tmp}"
 gindex_folder = os.path.join(software_folder, "g_index")
-gindex_fast_folder = os.path.join(software_folder, "g_index_fast")
-gindex_cache_folder = os.path.join(software_folder, "g_index_cache")
-gindex_merge_folder = os.path.join(software_folder, "g_index_merge")
+# gindex_fast_folder = os.path.join(software_folder, "g_index_fast")
+# gindex_cache_folder = os.path.join(software_folder, "g_index_cache")
+# gindex_merge_folder = os.path.join(software_folder, "g_index_merge")
 graphpp_folder = os.path.join(software_folder, "graphpp")
 output_folder = f"resources/{output_tmp}_{n_queries}"
 input_folder = f"resources/{input_tmp}_{n_queries}"
 gindex_folderr = os.path.join(output_folder, "g_index")
 gindex_fast_folderr = os.path.join(output_folder, "g_index_fast")
 gindex_cache_folderr = os.path.join(output_folder, "g_index_cache")
-gindex_merge_folderr = os.path.join(output_folder, "g_index_merge")
+gindex_full_folderr = os.path.join(output_folder, "g_index_full")
 graphpp_folderr = os.path.join(output_folder, "graphpp")
 bench_folder = os.path.join(output_folder, "bench")
 
@@ -63,9 +63,9 @@ TASK = [
 ##### include rules #####
 include: "rules/common.smk"
 include: "rules/gindex.smk"
-include: "rules/gindexfast.smk"
-include: "rules/gindexcache.smk"
-include: "rules/gindexmerge.smk"
+# include: "rules/gindexfast.smk"
+# include: "rules/gindexcache.smk"
+# include: "rules/gindexmerge.smk"
 include: "rules/graphpp.smk"
 include: "rules/results.smk"
 
@@ -107,9 +107,9 @@ rule all:
         # ),
         # os.path.join(results_folder, "results", "index.csv"),
         # os.path.join(results_folder, "results", "query.csv"),
-        os.path.join(results_folder, "results", "query_mem.pdf"),
-        os.path.join(results_folder, "results", "query_time.pdf"),
-        os.path.join(results_folder, "results", "index.pdf"),
+        os.path.join(results_folder, "query_mem.pdf"),
+        os.path.join(results_folder, "query_time.pdf"),
+        os.path.join(results_folder, "index.pdf"),
         # expand(os.path.join(output_folder, "graph", "query",
         #                     "{gfa_n}.query_{q}.m"),gfa_n=gfa_n,q=QUERIES),
         # expand(os.path.join(output_folder, "graphaligner", "query",
