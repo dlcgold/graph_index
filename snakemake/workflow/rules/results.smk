@@ -59,5 +59,5 @@ rule plot:
     conda: "../envs/results.yml"
     shell:
         """
-        python workflow/scripts/plot.py {input.i} {input.q} {params}
+        python workflow/scripts/plot.py {input.i} {input.q} {params} {cache_l}
         """
