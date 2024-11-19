@@ -409,16 +409,17 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
          rldintv_t &sai, std::vector<std::vector<uint64_t>> &tags,
          std::vector<std::vector<uint64_t>> &adj,
          std::vector<uint64_t> labels_map, uint64_t curr_node, char *read_name,
-         uint64_t r_c, std::vector<node_sai> int_s = {}) {
+         uint64_t r_c, std::vector<node_sai> int_s) {
 
   std::vector<node_sai> int_curr;
   // uint8_t symb = i > 0 ? s[i] : 5;
   uint8_t symb = 5;
   if (!int_s.empty()) {
+    //std::cerr << i << " vs " << l << "\n";
     symb = i > 0 ? s[i] : 5;
     i--;
 
-    std::vector<node_sai> int_curr = int_s;
+   int_curr = int_s;
 
     for (auto t : int_s) {
       auto tmp_int =
@@ -426,6 +427,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
       int_curr.insert(int_curr.end(), tmp_int.begin(), tmp_int.end());
     }
     int_curr = merge(int_curr);
+
   } else {
     --i;
     symb = i > 0 ? s[i] : 5;
@@ -445,6 +447,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
   std::vector<node_sai> int_next;
   // bool start = true;
   int db = 0;
+
   for (; i >= 0; --i) {
     // std::cerr << "-------------------------------\n" << std::endl;
     db++;

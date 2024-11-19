@@ -255,6 +255,7 @@ void gindex_query(std::string index_pre, const char *query_file, int threads,
     if (ls != 0) {
       int_v = cache[suff_map[suf]];
     }
+    //std::cerr << "int size: " << int_v.size() << ", ls = " << ls << "\n";
     /*for(auto v: int_v){
     fprintf(stderr, "cache %ld %ld\n", v.sai.x[0], v.sai.x[2]);
     if(v.sai.x[2]==1){
