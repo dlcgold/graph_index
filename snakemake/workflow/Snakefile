@@ -35,7 +35,7 @@ s = int((max_l - min_l) / (steps - 1))
 QUERIES = [min_l + i * s for i in range(steps)]
 q_p = QUERIES[0]
 #print(QUERIES)
-
+print(f"Experimentation with graph {gfa} and queries of length {QUERIES}")
 software_folder = f"resources/{software_tmp}"
 gindex_folder = os.path.join(software_folder, "g_index")
 # gindex_fast_folder = os.path.join(software_folder, "g_index_fast")
