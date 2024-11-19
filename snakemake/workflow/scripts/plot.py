@@ -22,6 +22,15 @@ def get_size(file_path, unit="bytes", r=2):
 
 
 def main(argv):
+    cache = argv[3]
+    name_map = {
+        "gindex": f"gindex with cache length: {cache}",
+        "gindex_fast": "gindex without cache",
+        "gindex_no_cache": "gindex weithout cache",
+        "gindex_full": "gindex full path",
+        "gindex_cache": f"gindex with cache length: {cache}",
+        "graphpp": "gcsa2",
+    }
     kb_to_gb = 9.5367431640625e-7
     if os.path.exists("~/.matplotlib/stylelib/nord-light.mplstyle"):
         plt.style.use("~/.matplotlib/stylelib/nord-light.mplstyle")
@@ -40,39 +49,56 @@ def main(argv):
         subset = df[df["tool"] == tool]
         plt.plot(subset["l_query"], subset["wall_clock"], marker="o", label=tool)
 
-    # Etichette e titolo
-    plt.xlabel("l_query")
-    plt.ylabel("wall_clock")
-    plt.title("Query wall_clock")
-    plt.legend(title="Tool")
-    plt.savefig(f"{out_pref}/query_time.pdf", dpi=500)
+    plt.xlabel("Query length")
+    plt.ylabel("Time (seconds)")
+    plt.title("Querying time")
+    handles, labels = plt.gca().get_legend_handles_labels()
+    new_labels = [name_map.get(label, label) for label in labels]
+
+    # plt.legend(title="Tool")
+    plt.tight_layout()
+    plt.legend(
+        handles, new_labels, loc="lower center", bbox_to_anchor=(0.5, -0.17), ncol=4
+    )
+
+    plt.savefig(f"{out_pref}/query_time.pdf", dpi=500, bbox_inches="tight")
     df = query_df
     plt.figure(figsize=(10, 6))
     for tool in df["tool"].unique():
         subset = df[df["tool"] == tool]
         plt.plot(subset["l_query"], subset["max_mem"], marker="o", label=tool)
 
-    # Etichette e titolo
-    plt.xlabel("l_query")
-    plt.ylabel("max_mem")
-    plt.title("Query max_mem")
-    plt.legend(title="Tool")
-    plt.savefig(f"{out_pref}/query_mem.pdf", dpi=500)
+    plt.xlabel("Query length")
+    plt.ylabel("Memory (gigabytes)")
+    plt.title("Querying memory usage")
+    handles, labels = plt.gca().get_legend_handles_labels()
+    new_labels = [name_map.get(label, label) for label in labels]
+    plt.tight_layout()
+    plt.legend(
+        handles, new_labels, loc="lower center", bbox_to_anchor=(0.5, -0.17), ncol=4
+    )
+    # plt.legend(title="Tool")
+    plt.savefig(f"{out_pref}/query_mem.pdf", dpi=500, bbox_inches="tight")
 
     df = index_df
     plt.figure(figsize=(10, 6))
     for tool in df["tool"].unique():
         subset = df[df["tool"] == tool]
-        plt.scatter(
-            subset["wall_clock"], subset["max_mem"], label=tool, s=100
-        )  # S = dimensione punti
+        plt.scatter(subset["wall_clock"], subset["max_mem"], label=tool, s=100)
 
-    # Etichette e titolo
-    plt.xlabel("wall_clock")
-    plt.ylabel("max_mem")
-    plt.title("index")
-    plt.legend(title="Tool")
-    plt.savefig(f"{out_pref}/index.pdf", dpi=500)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Memory (gigabytes)")
+    plt.title("Indexing performances")
+    handles, labels = plt.gca().get_legend_handles_labels()
+    new_labels = [name_map.get(label, label) for label in labels]
+
+    plt.tight_layout()
+    plt.legend(
+        handles, new_labels, loc="lower center", bbox_to_anchor=(0.5, -0.17), ncol=4
+    )
+    # plt.legend(handles, new_labels, title="Tool")
+    # plt.legend(title="Tool")
+    plt.savefig(f"{out_pref}/index.pdf", dpi=500, bbox_inches="tight")
 
 
 if __name__ == "__main__":
