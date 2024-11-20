@@ -7,11 +7,10 @@ make -j2
 cd ..
 make -j2
 
-./gindex -i example/test.gfa -o example/test-index
-./gindexquery -i example/test-index -q example/test.fq
+./gindex index -i example/test.gfa -o example/test-index -t 5 - c 5
+./gindex query -i example/test-index -q example/test.fq
 # Matches (as nodes in .gfa):
-# 1: 6, 6
-# 2: 1, 5, 6, 6, 7 
-# 3: 1, 2, 3
-# 4: None
+# @read1    6
+# @read2    4
+# @read2    4
 ```

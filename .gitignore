@@ -4,5 +4,13 @@
 *.graph
 *.tag
 *.ser
+*.time
+*.txt
+*.m
+.idea
+final
 gindex
 gindexquery
+all_back
+build
+compile_commands.json
