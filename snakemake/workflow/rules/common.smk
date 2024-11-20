@@ -7,7 +7,6 @@ rule downloadGindex:
         """
         git clone --recursive https://github.com/dlcgold/graph_index.git {output.d}
         cd {output.d}
-        git checkout merge
         git submodule update --init --recursive
         cd gfatools
         make
