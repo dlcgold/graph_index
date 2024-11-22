@@ -26,6 +26,8 @@ output_tmp = config["folder"]["output"]
 # output_folder = f"resources_{n_queries}/{output_tmp}"
 results_folder = config["folder"]["res"]
 
+resources_folder = config["folder"]["prefix"]
+
 gfa_n =gfa.split("/")[-1]
 
 #print(gfa_n)
@@ -36,14 +38,19 @@ QUERIES = [min_l + i * s for i in range(steps)]
 q_p = QUERIES[0]
 #print(QUERIES)
 print(f"Experimentation with graph {gfa} and queries of length {QUERIES}")
-software_folder = f"resources/{software_tmp}"
+#software_folder = f"resources/{software_tmp}"
+software_folder = os.path.join(resources_folder, software_tmp)
 gindex_folder = os.path.join(software_folder, "g_index")
 # gindex_fast_folder = os.path.join(software_folder, "g_index_fast")
 # gindex_cache_folder = os.path.join(software_folder, "g_index_cache")
 # gindex_merge_folder = os.path.join(software_folder, "g_index_merge")
 graphpp_folder = os.path.join(software_folder, "graphpp")
-output_folder = f"resources/{output_tmp}_{n_queries}"
-input_folder = f"resources/{input_tmp}_{n_queries}"
+#output_folder = f"{resources_folder}/{output_tmp}_{n_queries}"
+#input_folder = f"{resources_folder}/{input_tmp}_{n_queries}"
+output_folder = os.path.join(resources_folder,f"{output_tmp}_{n_queries}")
+input_folder = os.path.join(resources_folder,f"{input_tmp}_{n_queries}")
+
+
 gindex_folderr = os.path.join(output_folder, "g_index")
 gindex_fast_folderr = os.path.join(output_folder, "g_index_fast")
 gindex_cache_folderr = os.path.join(output_folder, "g_index_cache")

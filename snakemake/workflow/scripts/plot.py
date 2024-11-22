@@ -23,6 +23,7 @@ def get_size(file_path, unit="bytes", r=2):
 
 def main(argv):
     cache = argv[3]
+    n_q = argv[4]
     name_map = {
         "gindex": f"gindex with cache length: {cache}",
         "gindex_fast": "gindex without cache",
@@ -51,7 +52,7 @@ def main(argv):
 
     plt.xlabel("Query length")
     plt.ylabel("Time (seconds)")
-    plt.title("Querying time")
+    plt.title(f"Querying time ({n_q} queries)")
     handles, labels = plt.gca().get_legend_handles_labels()
     new_labels = [name_map.get(label, label) for label in labels]
 
@@ -70,7 +71,7 @@ def main(argv):
 
     plt.xlabel("Query length")
     plt.ylabel("Memory (gigabytes)")
-    plt.title("Querying memory usage")
+    plt.title(f"Querying memory usage ({n_q} queries)")
     handles, labels = plt.gca().get_legend_handles_labels()
     new_labels = [name_map.get(label, label) for label in labels]
     plt.tight_layout()

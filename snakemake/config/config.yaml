@@ -1,13 +1,14 @@
-folder :
-  software : "software" 
-  res : "results"
-  input : "input"
-  output : "output"
-params :
-  gfa : "example/graph32.gfa"
-  n_queries : "1000"
-  max_length_queries : "10000"
-  min_length_queries : "100"
-  steps: "5"
+folder:
+  prefix: "resources_test"
+  software: "software"
+  res: "results"
+  input: "input"
+  output: "output"
+params:
+  gfa: "example/graph32.gfa"
+  n_queries: "10"
+  max_length_queries: "10000"
+  min_length_queries: "100"
+  steps: "2"
   threads: "4"
   cache_l: "5"
