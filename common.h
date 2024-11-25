@@ -34,7 +34,7 @@ struct node_sai {
   }
 };
 
-std::vector<node_sai> merge(std::vector<node_sai> intervals) {
+std::vector<node_sai> merge(std::vector<node_sai> intervals, uint64_t s) {
 
   std::sort(intervals.begin(), intervals.end());
 
@@ -47,6 +47,7 @@ std::vector<node_sai> merge(std::vector<node_sai> intervals) {
     } else {
       merged.back().sai.x[2] = std::max(merged.back().end(), interval.end()) -
                                merged.back().sai.x[0];
+      merged.back().curr_node = s;
     }
   }
   return merged;
@@ -426,7 +427,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
           get_intervals(index, t.sai.x[0], t.sai.x[2], tags, adj, symb, {});
       int_curr.insert(int_curr.end(), tmp_int.begin(), tmp_int.end());
     }
-    int_curr = merge(int_curr);
+    int_curr = merge(int_curr, tags[0].size());
 
   } else {
     --i;
@@ -519,7 +520,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     // int_curr = int_next;
     // printf("before merge: %ld\n", int_next.size());
 
-    int_curr = merge(int_next);
+    int_curr = merge(int_next, tags[0].size());
 
     // printf("after merge: %ld\n", int_curr.size());
     // if(int_curr.size()==1){
@@ -621,7 +622,7 @@ std::vector<node_sai> ext_alph(const rld_t *index, const uint8_t symb,
       int_next.push_back({sai, ic.curr_node, ic.path});
     }
   }
-  auto int_curr = merge(int_next);
+  auto int_curr = merge(int_next, tags[0].size());
   if (int_curr.size() == 0) {
     return {};
   }
