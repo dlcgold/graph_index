@@ -48,6 +48,7 @@ std::vector<node_sai> merge(std::vector<node_sai> intervals, uint64_t s) {
       merged.back().sai.x[2] = std::max(merged.back().end(), interval.end()) -
                                merged.back().sai.x[0];
       merged.back().curr_node = s;
+      merged.back().path = {s};
     }
   }
   return merged;
