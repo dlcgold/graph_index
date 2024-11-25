@@ -366,7 +366,11 @@ void ext_path(const rld_t *index, const uint8_t *s, int i, uint64_t l,
   int_curr.erase(std::unique(int_curr.begin(), int_curr.end()), int_curr.end());
 
   for (auto ic : int_curr) {
-    if (ic.sai.x[2] >= 1) {
+    
+     // std::fprintf(stderr, "Final match [%ld, %ld, %ld] at %ld\n", ic.sai.x[0],
+     //   ic.sai.x[1],
+     //           ic.sai.x[2], ic.curr_node);
+	if (ic.sai.x[2] >= 1) {
       // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
       //  ic.sai.x[1],
       //          ic.sai.x[2]);
@@ -422,7 +426,6 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     i--;
 
    int_curr = int_s;
-
     for (auto t : int_s) {
       auto tmp_int =
           get_intervals(index, t.sai.x[0], t.sai.x[2], tags, adj, symb, {});
@@ -437,7 +440,7 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
     // fprintf(stderr, "symb: %c at %d\n\n", "$ACGTN"[symb], i);
     // fflush(stderr);
     int_curr = get_intervals(index, sai.x[0], sai.x[2], tags, adj, symb, {});
-    int_curr.push_back({sai, curr_node});
+    int_curr.push_back({sai, tags[0].size()});
   }
   if (verbose) {
     std::fprintf(stderr, "at %d for char %d:\n", i, s[i]);
@@ -545,11 +548,12 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
       }
     }
   }
+    int_curr = merge(int_curr, tags[0].size());
   // printf("heer");
   for (auto ic : int_curr) {
-    // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
-    // ic.sai.x[1],
-    //        ic.sai.x[2]);
+    //std::fprintf(stderr, "Final match [%ld, %ld, %ld] at %ld\n", ic.sai.x[0],
+    //ic.sai.x[1],
+    //ic.sai.x[2], ic.curr_node);
     if (ic.sai.x[2] >= 1) {
 
       // std::fprintf(stderr, "Final match [%ld, %ld, %ld]\n", ic.sai.x[0],
@@ -584,13 +588,13 @@ void ext(const rld_t *index, const uint8_t *s, int i, uint64_t l,
         for (uint64_t k = ic.sai.x[0]; k < ic.sai.x[0] + ic.sai.x[2]; k++) {
           uint8_t symb = get_bwt_symb(index, k);
           if (symb == 0) {
-            uint64_t end_node = tags[0][rld_rank11(index, sai.x[0], 0)];
+            uint64_t end_node = tags[0][rld_rank11(index, k, 0)];
             if (end_node == tags[0].size() - 1) {
               std::fprintf(stdout, "@%s\t%ld\n", read_name, labels_map[0]);
             } else {
               std::fprintf(stdout, "@%s\t%ld\n", read_name,
                            labels_map[end_node + 1]);
-            }
+	    }
           } else {
             uint64_t node_f = findnode(index, k, tags[0].size(), tags);
             // std::fprintf(stderr, "Match at node: %ld\n", node_f);
