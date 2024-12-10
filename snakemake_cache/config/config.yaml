@@ -1,0 +1,14 @@
+folder:
+  prefix: "resources_cache"
+  software: "software"
+  res: "results_cache"
+  input: "input"
+  output: "output"
+params:
+  gfa: "example/graph32.gfa"
+  n_queries: "10"
+  max_length_queries: "10"
+  min_length_queries: "2"
+  steps: "3"
+  threads: "4"
+  cache_l: "5"

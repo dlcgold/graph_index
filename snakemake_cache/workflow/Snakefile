@@ -1,0 +1,132 @@
+from snakemake.utils import min_version
+import os
+
+##### config file #####
+configfile: "config/config.yaml"
+
+##### set minimum snakemake version #####
+min_version("6.4.1")
+
+threads = int(config["params"]["threads"])
+
+n_queries = int(config["params"]["n_queries"])
+min_l = int(config["params"]["min_length_queries"])
+max_l = int(config["params"]["max_length_queries"])
+steps = int(config["params"]["steps"])
+cache_l = int(config["params"]["cache_l"])
+
+gfa = config["params"]["gfa"]
+
+software_tmp = config["folder"]["software"]
+input_tmp = config["folder"]["input"]
+output_tmp = config["folder"]["output"]
+
+# software_folder = f"resources_{n_queries}/{software_tmp}"
+# input_folder = f"resources_{n_queries}/{input_tmp}"
+# output_folder = f"resources_{n_queries}/{output_tmp}"
+results_folder = config["folder"]["res"]
+
+resources_folder = config["folder"]["prefix"]
+
+gfa_n =gfa.split("/")[-1]
+
+#print(gfa_n)
+
+s = int((max_l - min_l) / (steps - 1))
+
+QUERIES = [min_l + i * s for i in range(steps)]
+q_p = QUERIES[0]
+CACHES=list(range(0, 3))
+
+#print(QUERIES)
+print(f"Experimentation with graph {gfa}, caches {CACHES} and queries of length {QUERIES}")
+#software_folder = f"resources/{software_tmp}"
+software_folder = os.path.join(resources_folder, software_tmp)
+gindex_folder = os.path.join(software_folder, "g_index")
+# gindex_fast_folder = os.path.join(software_folder, "g_index_fast")
+# gindex_cache_folder = os.path.join(software_folder, "g_index_cache")
+# gindex_merge_folder = os.path.join(software_folder, "g_index_merge")
+#graphpp_folder = os.path.join(software_folder, "graphpp")
+#output_folder = f"{resources_folder}/{output_tmp}_{n_queries}"
+#input_folder = f"{resources_folder}/{input_tmp}_{n_queries}"
+output_folder = os.path.join(resources_folder,f"{output_tmp}_{n_queries}")
+input_folder = os.path.join(resources_folder,f"{input_tmp}_{n_queries}")
+
+
+gindex_folderr = os.path.join(output_folder, "g_index")
+# gindex_fast_folderr = os.path.join(output_folder, "g_index_fast")
+#gindex_cache_folderr = os.path.join(output_folder, "g_index_cache")
+#gindex_full_folderr = os.path.join(output_folder, "g_index_full")
+#graphpp_folderr = os.path.join(output_folder, "graphpp")
+bench_folder = os.path.join(output_folder, "bench")
+
+
+TOOL = [
+    "gindex",
+    "gcsa2"
+];
+
+TASK = [
+    "index",
+    "query",
+]
+##### include rules #####
+include: "rules/common.smk"
+#include: "rules/gindex.smk"
+# include: "rules/gindexfast.smk"
+include: "rules/gindexcache.smk"
+# include: "rules/gindexmerge.smk"
+# include: "rules/graphpp.smk"
+include: "rules/results.smk"
+
+##### target rules #####
+rule all:
+    input:
+        # os.path.join(gindex_folder, "gindex"),
+        # os.path.join(gindex_fast_folder, "gindex"),
+        # os.path.join(gindex_cache_folder, "gindex"),
+        # os.path.join(graphpp_folder, "graphpp"),
+        # os.path.join(graph_folder, "gindex"),
+        # os.path.join(graph_folder, "gindexquery"),
+        # expand(
+        #     os.path.join(input_folder, "q_{q}", "reads.fa"),
+        #     q = QUERIES,
+        # ),
+        #expand(os.path.join(graphpp_folderr, "index", "{gfa_n}.gcsa"), gfa_n=gfa_n),
+        # expand(os.path.join(gindex_folderr, "index", "{gfa_n}.bwt"), gfa_n=gfa_n),
+        # expand(os.path.join(gindex_fast_folderr, "index", "{gfa_n}.bwt"), gfa_n=gfa_n),
+        # expand(os.path.join(gindex_cache_folderr, "index", "{gfa_n}.bwt"), gfa_n=gfa_n),
+        # os.path.join(gindex_folderr, "index", "graph.bwt"),
+        # os.path.join(gindex_fast_folderr, "index", "graph.bwt"),
+        # os.path.join(gindex_cache_folderr, "index", "graph.bwt"),
+        # expand(
+        #     os.path.join(graphpp_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_fast_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        # expand(
+        #     os.path.join(gindex_cache_folderr, "query", "query_{q}.m"),
+        #     q = QUERIES,
+        # ),
+        #os.path.join(results_folder, "index.csv"),
+        #os.path.join(results_folder, "query.csv"),
+        os.path.join(results_folder, "query_mem.pdf"),
+        os.path.join(results_folder, "query_time.pdf"),
+        os.path.join(results_folder, "index.pdf"),
+        # expand(os.path.join(output_folder, "graph", "query",
+        #                     "{gfa_n}.query_{q}.m"),gfa_n=gfa_n,q=QUERIES),
+        # expand(os.path.join(output_folder, "graphaligner", "query",
+        #                     "{gfa_n}.query_{q}.gaf"),gfa_n=gfa_n,q=QUERIES),
+        # expand(os.path.join(output_folder, "vg", "query",
+        #                     "{gfa_n}.query_{q}.gaf"),gfa_n=gfa_n,q=QUERIES),
+        # expand(os.path.join(output_folder, "{tool}", "index",
+        #                     "index.{gfa_n}.time.csv"), tool=TOOL, gfa_n=gfa_n),
+        # expand(os.path.join(output_folder, "{tool}", "query",
+        #                     "query_{q}.{gfa_n}.time.csv"), tool=TOOL,q=QUERIES,gfa_n=gfa_n)

@@ -14,6 +14,7 @@ def main(argv):
     if m_reads > l_reads:
         m_reads = int(l_reads / 10)
     node_map = {}
+    avg_l = 0
     # gfa = gfapy.Gfa.from_file(gfa_file)
     G = nx.DiGraph()
     nn = []
@@ -28,6 +29,7 @@ def main(argv):
                 nn.append(int(tokens[1]))
                 node_map[int(tokens[1])] = inn
                 inn = inn + 1
+                avg_l += len(tokens[2])
             elif line.startswith("L"):
                 tokens = line.split()
                 G.add_edge(int(tokens[1]), int(tokens[3]))
@@ -39,12 +41,16 @@ def main(argv):
     #     tokens = str(e).split()
     #     G.add_edge(int(tokens[1]), int(tokens[3]))
     # print(node_map)
+    avg_l = int(avg_l / len(nn))
     i = 0
     while i < n_reads:
         id_node = random.choice(nn)
         start_node = G.nodes()[id_node]
         start_offset = random.choice(range(int((start_node["l"] + 1) / 2)))
-        n_adds_nodes = random.choice(range(3 * int(l_reads / 32)))
+        n_adds_nodes = 0
+        if (3 * int(l_reads / avg_l)) != 0:
+            n_adds_nodes = random.choice(range(3 * int(l_reads / avg_l)))
+        # print(n_adds_nodes)
         # if n_adds_nodes < 3:
         #     continue
         if n_adds_nodes == 0:
@@ -53,9 +59,9 @@ def main(argv):
             n = start_node["ids"]
             m = node_map[n]
             i = i + 1
-            if len(s) >= l_reads and 'N' not in s[:l_reads]:
+            if len(s) >= l_reads and "N" not in s[:l_reads]:
                 print(f">{n}-{m}\n{s[:l_reads]}")
-            elif len(s) == l_reads and 'N' not in s:
+            elif len(s) == l_reads and "N" not in s:
                 print(f">{n}-{m}\n{s}")
             else:
                 i = i - 1
@@ -98,9 +104,9 @@ def main(argv):
             ns = f"{list_nodes[0]}-{node_map[list_nodes[0]]}"
             ##print(len(s))
             i = i + 1
-            if len(s) == l_reads and 'N' not in s:
+            if len(s) == l_reads and "N" not in s:
                 print(f">{ns}\n{s}")
-            elif len(s) >= l_reads and 'N' not in s[:l_reads]:
+            elif len(s) >= l_reads and "N" not in s[:l_reads]:
                 print(f">{ns}\n{s[:l_reads]}")
             else:
                 i = i - 1
