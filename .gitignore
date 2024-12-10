@@ -14,3 +14,5 @@ gindexquery
 all_back
 build
 compile_commands.json
+snakemake/.snakemake
+snakemake_cache/.snakemake
