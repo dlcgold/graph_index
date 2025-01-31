@@ -28,7 +28,7 @@ Optional arguments:
   -o, --output   output prefix 
 ```
 
-## Query index using reads in FASTA format
+## Query index using reads in FASTA/FASTQ format
 
 ``` bash
 ./gindex query  -h
@@ -41,7 +41,6 @@ Optional arguments:
   -v, --version  prints version information and exits 
   -i, --input    input prefix for the index 
   -q, --query    query FASTA/FASTQ file 
-  -t, --thread   number of threads (default 1) [nargs=0..1] [default: 1]
   -f, --full     compute all nodes path for a match (warning: cache will not be used, very slow) 
   -n, --nocache  ignore cache 
 ```
