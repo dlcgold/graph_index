@@ -59,3 +59,7 @@ Optional arguments:
 ## Experiments
 In `/snakemake`you will find a little `snakemake` pipeline to test `gindex`
 against [GCSA2](https://github.com/jltsiren/gcsa2.git).
+
+## Limitations and future developments
+- currently we can support only GFA files where the segments id is numerical
+- reads shorter than the cache length are skipped
